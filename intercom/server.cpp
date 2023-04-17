@@ -1,0 +1,105 @@
+#include "server.h"
+
+QList<ClientSocketItem*> Server::onlineClients;
+
+Server::Server()
+{
+
+    server = new QTcpServer(this);
+
+    //监听8888端口
+    if (!server->listen(QHostAddress::Any, 8888)) {
+        qDebug() << "Failed to start server \n";
+    } else {
+        qDebug() << "Server started on port" << server->serverPort() <<" " <<server->serverAddress() << "\n";
+    }
+
+    //绑定槽函数
+    connect(server, &QTcpServer::newConnection, this, &Server::handleNewConnection);
+
+
+
+
+}
+
+void Server::addOnlineClient(ClientSocketItem* ClientSocketItem){
+
+    onlineClients << ClientSocketItem;
+}
+
+void Server::deleteOnlieClient(ClientSocketItem* ClientSocketItem){
+    onlineClients.removeOne(ClientSocketItem);
+
+}
+
+/*
+    说明：根据IP地址和端口号从在线客户端中获取其Item
+    参数：QString s,例：192.168.1.1:8080
+    返回值：如果找到了返回对应的Item,否则返回NULL
+*/
+ClientSocketItem* Server::getTargetClientFromOnline(QString s){
+
+    QStringList stringList = s.split(':');
+    if(stringList.size()<2) return NULL;
+    QString IPAddress = stringList.at(0);
+    int port = stringList.at(1).toInt();
+
+    QHostAddress *targetIPAddress = new QHostAddress(IPAddress);
+    //qDebug() << targetIPAddress <<" "<<port<<" Server!";
+
+    for(int i = 0;i<onlineClients.size();i++){
+        //qDebug()<<onlineClients[i]->getSocket()->peerAddress() <<" "<<onlineClients[i]->getSocket()->peerPort();
+        if(onlineClients[i]->getSocket()->peerAddress().toIPv4Address() == targetIPAddress->toIPv4Address() && onlineClients[i]->getSocket()->peerPort()==port
+                && onlineClients[i]->getStatus() == AVAILABLE){
+            return onlineClients[i];
+        }
+    }
+
+    return NULL;
+}
+
+void Server::showOnlineClients(){
+    qDebug() <<"当前在线客户端：" << onlineClients.size();
+    for(int i = 0;i<onlineClients.size();i++){
+        qDebug() << '['<<i<<"] "<< onlineClients[i]->getSocket()->peerAddress() << onlineClients[i]->getSocket()->peerPort();
+    }
+}
+
+void Server::handleNewConnection()
+{
+    //处理新连接
+    clientSocket = server->nextPendingConnection();
+    qDebug() << "new client connected:" << clientSocket->peerAddress().toString();
+
+    ClientSocketItem *cst = new ClientSocketItem(clientSocket);
+}
+
+void Server::readTcpData(){
+    if(clientSocket){
+        QByteArray data = clientSocket->readLine();
+        qDebug() << "Server receive Data:" << data;
+
+        //检验用户请求
+        if(data[0]!='#' || data[1]!='#' || data[2]!='#'){
+            qDebug() << clientSocket->peerPort() << "请求不合法！\r\n";
+
+        }else{
+
+        }
+        clientSocket->write("Hello client\r\n");
+    }
+
+}
+
+void Server::handleCloseConnection(){
+    if(clientSocket){
+        qDebug()<<clientSocket->peerAddress()<<clientSocket->peerPort()<<"close ...";
+
+        clientSocket->close();
+        qDebug() << "OK\r\n";
+        //释放内存
+        clientSocket->deleteLater();
+    }
+}
+
+
