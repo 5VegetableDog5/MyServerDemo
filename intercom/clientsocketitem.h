@@ -31,7 +31,8 @@ private:
     ClientSocketItem* targetClientItem;
 
     void disconncetClient();
-    bool setTatgetClientSocket(QString IPAddress_port);
+    bool setTatgetClientItem(QString IPAddress_port);
+    bool setTatgetClientItem(ClientSocketItem* targetItem);
 
 private slots:
     void readTcpData();

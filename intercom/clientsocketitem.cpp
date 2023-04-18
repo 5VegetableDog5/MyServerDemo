@@ -30,7 +30,13 @@ void ClientSocketItem::readTcpData(){
             //检验用户请求 首先判断是否有连续三个#号标识符
             if(data[0]!='#' || data[1]!='#' || data[2]!='#'){
                 qDebug() <<clientSocket->peerAddress()<< clientSocket->peerPort() << "请求不合法！";
-
+                //如果超过合法性验证次数
+                if(legalityCount+1 >= LEGALITYMAXCOUNT){
+                    disconncetClient();
+                    return;
+                }
+                legalityCount++;
+                return;
             }else{
                 legality = true;
                 //将当前用户添加至 在线用户组
@@ -40,12 +46,17 @@ void ClientSocketItem::readTcpData(){
                 //targetClientSocket = Server::getTargetClientFromOnline()
             }
 
-            //如果超过合法性验证次数
-            if(legalityCount+1 >= LEGALITYMAXCOUNT){
-                disconncetClient();
-                return;
+
+        }
+        //如果为拨号状态
+        if(status == DIALSTATUS){
+            if(targetClientItem){
+                targetClientItem->getSocket()->write(data.toUtf8());
+            }else{
+                qDebug()<<"program error! <<";
+                qDebug()<<"the item "<<getSocket()->peerAddress().toString()<<getSocket()->peerPort()<<"is DIALSTATUS,but targetClientItem is NULL";
             }
-            legalityCount++;
+            return;
         }
 
         //如果状态为未通话状态
@@ -56,35 +67,62 @@ void ClientSocketItem::readTcpData(){
                 qDebug() <<clientSocket->peerAddress()<< clientSocket->peerPort() << "无效请求！";
 
             }else{
-
-                if(setTatgetClientSocket(stringlist.at(1))){
+                if(setTatgetClientItem(stringlist.at(1))){
                     qDebug() << "target set to" << targetClientItem->getSocket()->peerAddress() << targetClientItem->getSocket()->peerPort();
 
                     //如果成功找到对应IP则将本身状态转化为拨号状态 且要将对方设为接听状态
+                    //拨号状态的 targetClientItem 为拨号的对象
+                    //接听状态的 targetClientItem 为拨号的发起者
                     setStatus(DIALSTATUS);
                     targetClientItem->setStatus(ANSWERINGSTATUS);
+                    targetClientItem->setTatgetClientItem(this);
+
                 }else{
                     qDebug() << "target set error";
                 }
-                //targetClientSocket = Server::getTargetClientFromOnline()
             }
         }
 
-        if(status == DIALSTATUS){
-            if(targetClientItem)
-                targetClientItem->getSocket()->write(data.toUtf8());
+        //如果为接听状态
+        if(status == ANSWERINGSTATUS){
+
+            QStringList stringlist = data.split(' ');
+            qDebug()<<"----------------------------------" << stringlist.at(1);
+            //检验用户请求 首先判断是否有连续三个#号标识符
+            if((data[0]!='#' || data[1]!='#' || data[2]!='#') || stringlist.size()!=2){
+                qDebug() <<clientSocket->peerAddress()<< clientSocket->peerPort() << "无效请求！";
+                return;
+            }
+
+            //如果是结束指令，结束指令只能由接听状态发起
+            if(getStatus()==ANSWERINGSTATUS && (stringlist.at(1) == "OVERCALL")){
+                //中断这两个客户端的连接
+                qDebug() << getSocket()->peerAddress().toString() << getSocket()->peerPort()
+                         << " OVERCALL " << targetClientItem->getSocket()->peerAddress().toString() << targetClientItem->getSocket()->peerPort();
+                targetClientItem->setStatus(AVAILABLE);
+                targetClientItem->setTatgetClientItem(NULL);
+                this->setStatus(AVAILABLE);
+                this->setTatgetClientItem(NULL);
+            }
         }
-        //clientSocket->write("Hello client\r\n");
+
+
+
     }
 
 }
 
-bool ClientSocketItem::setTatgetClientSocket(QString IPAddress_port){
+bool ClientSocketItem::setTatgetClientItem(QString IPAddress_port){
     qDebug()<<"set target Address "<<IPAddress_port;
     targetClientItem = Server::getTargetClientFromOnline(IPAddress_port);
     if(targetClientItem) return true;
 
     return false;
+}
+
+bool ClientSocketItem::setTatgetClientItem(ClientSocketItem* targetItem){
+    this->targetClientItem = targetItem;
+    return true;
 }
 
 /*
@@ -120,6 +158,7 @@ void ClientSocketItem::handleCloseConnection(){
         clientSocket->close();
         if(targetClientItem){
             targetClientItem->setStatus(AVAILABLE);
+            targetClientItem->setTatgetClientItem(NULL);
         }
 
         //释放内存
