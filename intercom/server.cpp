@@ -17,9 +17,6 @@ Server::Server()
     //绑定槽函数
     connect(server, &QTcpServer::newConnection, this, &Server::handleNewConnection);
 
-
-
-
 }
 
 void Server::addOnlineClient(ClientSocketItem* ClientSocketItem){
@@ -33,23 +30,25 @@ void Server::deleteOnlieClient(ClientSocketItem* ClientSocketItem){
 }
 
 /*
-    说明：根据IP地址和端口号从在线客户端中获取其Item
+    说明：根据IP地址从在线客户端中获取其Item
     参数：QString s,例：192.168.1.1:8080
     返回值：如果找到了返回对应的Item,否则返回NULL
+
+    2023.2.13修改说明：取消对端口号的限制，即ip正确即可
 */
 ClientSocketItem* Server::getTargetClientFromOnline(QString s){
 
     QStringList stringList = s.split(':');
     if(stringList.size()<2) return NULL;
     QString IPAddress = stringList.at(0);
-    int port = stringList.at(1).toInt();
+    //int port = stringList.at(1).toInt();
 
     QHostAddress *targetIPAddress = new QHostAddress(IPAddress);
     //qDebug() << targetIPAddress <<" "<<port<<" Server!";
 
     for(int i = 0;i<onlineClients.size();i++){
         //qDebug()<<onlineClients[i]->getSocket()->peerAddress() <<" "<<onlineClients[i]->getSocket()->peerPort();
-        if(onlineClients[i]->getSocket()->peerAddress().toIPv4Address() == targetIPAddress->toIPv4Address() && onlineClients[i]->getSocket()->peerPort()==port
+        if(onlineClients[i]->getSocket()->peerAddress().toIPv4Address() == targetIPAddress->toIPv4Address()
                 && onlineClients[i]->getStatus() == AVAILABLE){
             return onlineClients[i];
         }
@@ -69,9 +68,15 @@ void Server::handleNewConnection()
 {
     //处理新连接
     clientSocket = server->nextPendingConnection();
-    qDebug() << "new client connected:" << clientSocket->peerAddress().toString();
+    qDebug() << "new client connected:" << clientSocket->peerAddress().toString()<<clientSocket->peerPort();
 
     ClientSocketItem *cst = new ClientSocketItem(clientSocket);
+    for(int i = 0;i<onlineClients.size();i++){
+        if(onlineClients[i]->getSocket()->peerAddress().toIPv4Address() == clientSocket->peerAddress().toIPv4Address()){
+            qDebug()<<"删除相同的IP";
+            onlineClients[i]->disconncetClient();
+        }
+    }
 }
 
 void Server::readTcpData(){

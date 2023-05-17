@@ -18,8 +18,13 @@ ClientSocketItem::ClientSocketItem(QTcpSocket *clientSocket)
 void ClientSocketItem::readTcpData(){
 
     if(clientSocket){
-        QString data = clientSocket->readLine();
-        qDebug() <<clientSocket->peerAddress()<<clientSocket->peerPort()<< " receive Data:" << data;
+        QByteArray data;
+        //如果是拨号状态或接听状态，应该读整个流里面的数据，不然传输的音频数据会卡顿
+        if(this->status == DIALSTATUS || this->status == ANSWERINGSTATUS)
+            data = clientSocket->readAll();
+        else
+            data = clientSocket->readLine();
+        //qDebug() <<clientSocket->peerAddress()<<clientSocket->peerPort()<< " receive Data:" << data;
 
         //如果还没有通过合法性验证
         if(!legality){
@@ -32,6 +37,7 @@ void ClientSocketItem::readTcpData(){
                 qDebug() <<clientSocket->peerAddress()<< clientSocket->peerPort() << "请求不合法！";
                 //如果超过合法性验证次数
                 if(legalityCount+1 >= LEGALITYMAXCOUNT){
+                    qDebug() << clientSocket->peerAddress()<<clientSocket->peerPort()<<"已达到非法请求次数上限，已自动断开连接!!";
                     disconncetClient();
                     return;
                 }
@@ -45,13 +51,13 @@ void ClientSocketItem::readTcpData(){
 
                 //targetClientSocket = Server::getTargetClientFromOnline()
             }
-
-
         }
+
         //如果为拨号状态
         if(status == DIALSTATUS){
             if(targetClientItem){
-                targetClientItem->getSocket()->write(data.toUtf8());
+                //qDebug() << 1 ;
+                targetClientItem->getSocket()->write(QByteArray::fromStdString(data.toStdString()));
             }else{
                 qDebug()<<"program error! <<";
                 qDebug()<<"the item "<<getSocket()->peerAddress().toString()<<getSocket()->peerPort()<<"is DIALSTATUS,but targetClientItem is NULL";
@@ -60,11 +66,12 @@ void ClientSocketItem::readTcpData(){
         }
 
         //如果状态为未通话状态
-        if(status == AVAILABLE){
-            QStringList stringlist = data.split(' ');
+        if(this->status == AVAILABLE){
+            QString *strdata = new QString(data);
+            QStringList stringlist = strdata->split(' ');
             //检验用户请求 首先判断是否有连续三个#号标识符
             if((data[0]!='#' || data[1]!='#' || data[2]!='#') || stringlist.size()!=2){
-                qDebug() <<clientSocket->peerAddress()<< clientSocket->peerPort() << "无效请求！";
+                qDebug() <<clientSocket->peerAddress()<< clientSocket->peerPort() << "无效请求1！" << status;
 
             }else{
                 if(setTatgetClientItem(stringlist.at(1))){
@@ -76,6 +83,7 @@ void ClientSocketItem::readTcpData(){
                     setStatus(DIALSTATUS);
                     targetClientItem->setStatus(ANSWERINGSTATUS);
                     targetClientItem->setTatgetClientItem(this);
+                    targetClientItem->getSocket()->write("RX");
 
                 }else{
                     qDebug() << "target set error";
@@ -85,25 +93,14 @@ void ClientSocketItem::readTcpData(){
 
         //如果为接听状态
         if(status == ANSWERINGSTATUS){
-
-            QStringList stringlist = data.split(' ');
-            qDebug()<<"----------------------------------" << stringlist.at(1);
-            //检验用户请求 首先判断是否有连续三个#号标识符
-            if((data[0]!='#' || data[1]!='#' || data[2]!='#') || stringlist.size()!=2){
-                qDebug() <<clientSocket->peerAddress()<< clientSocket->peerPort() << "无效请求！";
-                return;
+            if(targetClientItem){
+                //qDebug() << 1 ;
+                targetClientItem->getSocket()->write(QByteArray::fromStdString(data.toStdString()));
+            }else{
+                qDebug()<<"program error! <<";
+                qDebug()<<"the item "<<getSocket()->peerAddress().toString()<<getSocket()->peerPort()<<"is DIALSTATUS,but targetClientItem is NULL";
             }
-
-            //如果是结束指令，结束指令只能由接听状态发起
-            if(getStatus()==ANSWERINGSTATUS && (stringlist.at(1) == "OVERCALL")){
-                //中断这两个客户端的连接
-                qDebug() << getSocket()->peerAddress().toString() << getSocket()->peerPort()
-                         << " OVERCALL " << targetClientItem->getSocket()->peerAddress().toString() << targetClientItem->getSocket()->peerPort();
-                targetClientItem->setStatus(AVAILABLE);
-                targetClientItem->setTatgetClientItem(NULL);
-                this->setStatus(AVAILABLE);
-                this->setTatgetClientItem(NULL);
-            }
+            return;
         }
 
 
@@ -170,7 +167,6 @@ void ClientSocketItem::handleCloseConnection(){
 
 void ClientSocketItem::disconncetClient(){
     if(clientSocket){
-        qDebug() << clientSocket->peerAddress()<<clientSocket->peerPort()<<"已达到非法请求次数上限，已自动断开连接!!";
         clientSocket->disconnectFromHost();
     }
 }

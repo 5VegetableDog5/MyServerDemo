@@ -20,7 +20,7 @@ public:
     QTcpSocket* getSocket();
     short getStatus();
     void setStatus(short status);
-
+    void disconncetClient();
 protected:
 
 private:
@@ -30,7 +30,7 @@ private:
     QTcpSocket* clientSocket;
     ClientSocketItem* targetClientItem;
 
-    void disconncetClient();
+
     bool setTatgetClientItem(QString IPAddress_port);
     bool setTatgetClientItem(ClientSocketItem* targetItem);
 
