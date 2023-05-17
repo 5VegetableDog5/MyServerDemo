@@ -36,15 +36,10 @@ void Server::deleteOnlieClient(ClientSocketItem* ClientSocketItem){
 
     2023.2.13修改说明：取消对端口号的限制，即ip正确即可
 */
-ClientSocketItem* Server::getTargetClientFromOnline(QString s){
+ClientSocketItem* Server::getTargetClientFromOnline(QString targetIP){
 
-    QStringList stringList = s.split(':');
-    if(stringList.size()<2) return NULL;
-    QString IPAddress = stringList.at(0);
-    //int port = stringList.at(1).toInt();
-
-    QHostAddress *targetIPAddress = new QHostAddress(IPAddress);
-    //qDebug() << targetIPAddress <<" "<<port<<" Server!";
+    QHostAddress *targetIPAddress = new QHostAddress(targetIP);
+    qDebug() << targetIPAddress->toIPv4Address() <<" "<<" Server!";
 
     for(int i = 0;i<onlineClients.size();i++){
         //qDebug()<<onlineClients[i]->getSocket()->peerAddress() <<" "<<onlineClients[i]->getSocket()->peerPort();

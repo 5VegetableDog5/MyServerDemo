@@ -7,6 +7,10 @@
 #define DIALSTATUS       1   //拨号状态
 #define ANSWERINGSTATUS  2   //接听状态
 
+#define HEADER 0//帧头
+#define SOUNDDATA 1 //音频数据帧
+#define IPDATA 2//IP数据帧
+
 #include <QTcpSocket>
 
 #include <server.h>
@@ -21,6 +25,7 @@ public:
     short getStatus();
     void setStatus(short status);
     void disconncetClient();
+    QString removeLeadingZeros(const QString& ipAddress);
 protected:
 
 private:
@@ -31,8 +36,12 @@ private:
     ClientSocketItem* targetClientItem;
 
 
-    bool setTatgetClientItem(QString IPAddress_port);
+    bool setTatgetClientItem(const QString& IPAddress_port);
     bool setTatgetClientItem(ClientSocketItem* targetItem);
+    bool dial(const QString& targetIP);
+    void hangUPTheCall();
+    void onLine();
+    void offLine();
 
 private slots:
     void readTcpData();

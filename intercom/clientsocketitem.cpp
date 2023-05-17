@@ -18,14 +18,100 @@ ClientSocketItem::ClientSocketItem(QTcpSocket *clientSocket)
 void ClientSocketItem::readTcpData(){
 
     if(clientSocket){
-        QByteArray data;
-        //如果是拨号状态或接听状态，应该读整个流里面的数据，不然传输的音频数据会卡顿
-        if(this->status == DIALSTATUS || this->status == ANSWERINGSTATUS)
-            data = clientSocket->readAll();
-        else
-            data = clientSocket->readLine();
-        //qDebug() <<clientSocket->peerAddress()<<clientSocket->peerPort()<< " receive Data:" << data;
+        //将要收到的数据类型
+        //0:帧头
+        //1:音频数据帧
+        //2:IP数据帧
+        static short willreceive = 0;
 
+        //如果当前要收到的数据帧的话，该值为将要收到的数据帧长度（字节）
+        static int willReceiveLength=0;
+
+        static QString *strdata;
+        static QByteArray data;//数据
+        static QByteArray header;//帧头
+
+        if(willreceive == HEADER){
+
+            //读取帧头
+            if(clientSocket->bytesAvailable() >= 2){
+                header = clientSocket->read(2);
+            }else{
+                return;
+            }
+            qDebug()<<header.length();
+            qDebug()<<"帧头"<<header.at(0) <<header.at(1);
+            //if(header.at(0) == 0x00) qDebug()<<1;
+            //if(header[0] == (short)0)qDebug()<<2;
+
+
+            //解析帧头
+            if(header.at(0) == 0x00){//控制指令
+                if(header.at(1) == 0x00){//1.注册指令
+                    onLine();
+                    qDebug()<<"online";
+                }else if(header.at(1) == 0x01){//2.拨号指令
+                    willreceive = IPDATA;
+                    willReceiveLength = 15;
+                    qDebug()<<"拨号";
+                }else if(header.at(1) == 0x02){//3.挂断指令
+                    hangUPTheCall();
+                    qDebug()<<"hangup!";
+                }else if(header.at(1) == 0x03){//4.下线指令
+                    offLine();
+                    qDebug()<<"offLine";
+                }
+                return;
+            }else if(header.at(0) == 0x01){
+                if(header.at(1) == 0x00){//音频数据帧
+                    willreceive = SOUNDDATA;
+                    willReceiveLength = 4096;
+                }else if(header.at(1) == 0x02){//IP数据帧
+                    willreceive = IPDATA;
+                    willReceiveLength = 15;
+                }else if(header.at(1) == 0x01){//测试用数据帧
+                    willreceive = 0x03;//暂时不用
+                }
+                return;
+            }
+        }else if(willreceive == IPDATA){//1.IP数据帧
+            if(clientSocket->bytesAvailable() >= 15){
+                data = clientSocket->read(15);
+                if(this->legality){//确保已经注册且在线
+                    strdata = new QString(data);
+                    dial(removeLeadingZeros(*strdata));//尝试拨号
+                }
+
+            }else{
+                return;
+            }
+            willreceive = HEADER;
+            willReceiveLength = 0;
+            return;
+        }else if(willreceive == SOUNDDATA){//2.音频数据帧
+            if(clientSocket->bytesAvailable() >=willReceiveLength){
+                data = clientSocket->read(willReceiveLength);
+                if(targetClientItem){
+                    //qDebug() << 1 ;
+                    if(status == DIALSTATUS || status == ANSWERINGSTATUS){//确保是通话状态
+                        targetClientItem->getSocket()->write(header,2);
+                        targetClientItem->getSocket()->write(data,4096);
+                    }
+                }else{
+                    qDebug()<<"program error! <<";
+                    qDebug()<<"the item "<<getSocket()->peerAddress().toString()<<getSocket()->peerPort()<<"is DIALSTATUS,but targetClientItem is NULL";
+                }
+
+            }else{
+                return;
+            }
+            return;
+        }
+
+
+
+        //qDebug() <<clientSocket->peerAddress()<<clientSocket->peerPort()<< " receive Data:" << data;
+        /*
         //如果还没有通过合法性验证
         if(!legality){
             //请求格式:### (192.168.x.x:xxxx)
@@ -101,7 +187,7 @@ void ClientSocketItem::readTcpData(){
                 qDebug()<<"the item "<<getSocket()->peerAddress().toString()<<getSocket()->peerPort()<<"is DIALSTATUS,but targetClientItem is NULL";
             }
             return;
-        }
+        }*/
 
 
 
@@ -109,7 +195,7 @@ void ClientSocketItem::readTcpData(){
 
 }
 
-bool ClientSocketItem::setTatgetClientItem(QString IPAddress_port){
+bool ClientSocketItem::setTatgetClientItem(const QString& IPAddress_port){
     qDebug()<<"set target Address "<<IPAddress_port;
     targetClientItem = Server::getTargetClientFromOnline(IPAddress_port);
     if(targetClientItem) return true;
@@ -138,6 +224,45 @@ short ClientSocketItem::getStatus(){
     return status;
 }
 
+bool ClientSocketItem::dial(const QString& targetIP){
+    if(setTatgetClientItem(targetIP)){
+        qDebug() << "target set to" << targetClientItem->getSocket()->peerAddress() << targetClientItem->getSocket()->peerPort();
+
+        //如果成功找到对应IP则将本身状态转化为拨号状态 且要将对方设为接听状态
+        //拨号状态的 targetClientItem 为拨号的对象
+        //接听状态的 targetClientItem 为拨号的发起者
+        setStatus(DIALSTATUS);
+        targetClientItem->setStatus(ANSWERINGSTATUS);
+        targetClientItem->setTatgetClientItem(this);
+        targetClientItem->getSocket()->write("RX");
+        return true;
+
+    }else{
+        qDebug() << "target set error";
+    }
+    return false;
+}
+
+void ClientSocketItem::hangUPTheCall(){//挂电话
+    this->status = AVAILABLE;
+    targetClientItem->setStatus(AVAILABLE);
+    targetClientItem->setTatgetClientItem(NULL);
+    setTatgetClientItem(NULL);
+}
+
+void ClientSocketItem::onLine(){
+    legality = true;
+    //将当前用户添加至 在线用户组
+    Server::addOnlineClient(this);
+    Server::showOnlineClients();
+}
+
+void ClientSocketItem::offLine(){
+    this->legality = false;
+    hangUPTheCall();
+    Server::deleteOnlieClient(this);
+}
+
 /*
     说明：处理关闭客户端的操作
             1.从在线设备中删除
@@ -164,6 +289,16 @@ void ClientSocketItem::handleCloseConnection(){
 
     }
 }
+
+QString ClientSocketItem::removeLeadingZeros(const QString& ipAddress) {
+    QStringList ipParts = ipAddress.split('.'); // 将IP地址字符串拆分成每个字段
+    for (int i = 0; i < ipParts.size(); i++) {
+        ipParts[i] = QString::number(ipParts[i].toInt()); // 转换为整数并重新转换为字符串
+    }
+
+    return ipParts.join('.'); // 返回去除前导零后的修正后的IP地址字符串
+}
+
 
 void ClientSocketItem::disconncetClient(){
     if(clientSocket){

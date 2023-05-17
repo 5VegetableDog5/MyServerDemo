@@ -357,7 +357,12 @@ debug/clientsocketitem.o: ../intercom/clientsocketitem.cpp ../intercom/clientsoc
 		D:/Software/QT/6.2.4/mingw_64/include/QtCore/qcontiguouscache.h \
 		D:/Software/QT/6.2.4/mingw_64/include/QtCore/qsharedpointer.h \
 		D:/Software/QT/6.2.4/mingw_64/include/QtCore/qsharedpointer_impl.h \
-		D:/Software/QT/6.2.4/mingw_64/include/QtCore/qvariant.h
+		D:/Software/QT/6.2.4/mingw_64/include/QtCore/qvariant.h \
+		../intercom/server.h \
+		D:/Software/QT/6.2.4/mingw_64/include/QtCore/QObject \
+		D:/Software/QT/6.2.4/mingw_64/include/QtNetwork/QTcpServer \
+		D:/Software/QT/6.2.4/mingw_64/include/QtNetwork/qtcpserver.h \
+		D:/Software/QT/6.2.4/mingw_64/include/QtCore/QDebug
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o debug\clientsocketitem.o ..\intercom\clientsocketitem.cpp
 
 debug/main.o: ../intercom/main.cpp ../intercom/mainwindow.h \
