@@ -39,7 +39,6 @@ void Server::deleteOnlieClient(ClientSocketItem* ClientSocketItem){
 ClientSocketItem* Server::getTargetClientFromOnline(QString targetIP){
 
     QHostAddress *targetIPAddress = new QHostAddress(targetIP);
-    qDebug() << targetIPAddress->toIPv4Address() <<" "<<" Server!";
 
     for(int i = 0;i<onlineClients.size();i++){
         //qDebug()<<onlineClients[i]->getSocket()->peerAddress() <<" "<<onlineClients[i]->getSocket()->peerPort();
@@ -58,6 +57,7 @@ void Server::showOnlineClients(){
         qDebug() << '['<<i<<"] "<< onlineClients[i]->getSocket()->peerAddress() << onlineClients[i]->getSocket()->peerPort();
     }
 }
+
 
 void Server::handleNewConnection()
 {

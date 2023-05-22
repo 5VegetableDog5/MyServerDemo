@@ -13,6 +13,7 @@
 #define TESTDATA 3 //测试数据帧
 
 #include <QTcpSocket>
+#include <QThread>
 
 #include <server.h>
 
@@ -20,6 +21,7 @@ class Server;
 
 class ClientSocketItem : public QObject
 {
+    Q_OBJECT
 public:
     ClientSocketItem(QTcpSocket *clientSocket);
     QTcpSocket* getSocket();
@@ -27,6 +29,7 @@ public:
     void setStatus(short status);
     void disconncetClient();
     QString removeLeadingZeros(const QString& ipAddress);
+
 protected:
 
 private:
