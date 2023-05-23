@@ -69,7 +69,7 @@ void ClientSocketItem::readTcpData(){
                         hangUPTheCall();
                         qDebug()<<"hangup!";
                     }else if(header.at(1) == 0x03){//4.下线指令
-                        offLine();
+                        //offLine();
                         qDebug()<<"offLine";
                     }
                     continue;
@@ -102,6 +102,7 @@ void ClientSocketItem::readTcpData(){
                 willReceiveLength = 0;
                 continue;
             }else if(willreceive == SOUNDDATA){//2.音频数据帧
+                static short error1flag;
                 if(clientSocket->bytesAvailable() >=willReceiveLength){
                     qDebug() <<clientSocket->peerAddress()<< "bytesAvaiable"<<this->clientSocket->bytesAvailable()<<"willreceive"<<willReceiveLength;
                     data = clientSocket->read(willReceiveLength);
@@ -109,7 +110,10 @@ void ClientSocketItem::readTcpData(){
                         qDebug() << "音频数据" ;
                         if(status == DIALSTATUS || status == ANSWERINGSTATUS){//确保是通话状态
                             targetClientItem->getSocket()->write(header,2);
-                            targetClientItem->getSocket()->write(data,willReceiveLength);
+                            error1flag = targetClientItem->getSocket()->write(data,willReceiveLength);
+                            if(error1flag==-1){
+                                qDebug()<<"error1 occurd! clientsijetitem.cpp Line115";
+                            }
                         }
                     }else{
                         qDebug()<<"program error! <<";
