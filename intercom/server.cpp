@@ -16,12 +16,12 @@ Server::Server()
 
     //绑定槽函数
     connect(server, &QTcpServer::newConnection, this, &Server::handleNewConnection);
-
 }
 
 void Server::addOnlineClient(ClientSocketItem* ClientSocketItem){
 
     onlineClients << ClientSocketItem;
+
 }
 
 void Server::deleteOnlieClient(ClientSocketItem* ClientSocketItem){
@@ -59,6 +59,20 @@ void Server::showOnlineClients(){
     }
 }
 
+void Server::emitNewClientSingals(const QString ipAddr,const short status){
+    emit newOnlineClient(ipAddr,status);
+    //qDebug()<<"emit success!";
+}
+
+void Server::emitUpgradeClientStatus(const QString ipAddr,const short newStatus){
+    emit upgradeClientStatus(ipAddr,newStatus);
+    //qDebug()<<"upgreade";
+}
+
+void Server::emitOffLineSingal(const QString ipAddr){
+    emit offLineSingal(ipAddr);
+}
+
 void Server::handleNewConnection()
 {
     //处理新连接
@@ -66,6 +80,9 @@ void Server::handleNewConnection()
     qDebug() << "new client connected:" << clientSocket->peerAddress().toString()<<clientSocket->peerPort();
 
     ClientSocketItem *cst = new ClientSocketItem(clientSocket);
+    connect(cst,&ClientSocketItem::onlineClientSingal,this,&Server::emitNewClientSingals);
+    connect(cst,&ClientSocketItem::statusChanged,this,&Server::emitUpgradeClientStatus);
+    connect(cst,&ClientSocketItem::offLineSingal,this,&Server::emitOffLineSingal);
     for(int i = 0;i<onlineClients.size();i++){
         if(onlineClients[i]->getSocket()->peerAddress().toIPv4Address() == clientSocket->peerAddress().toIPv4Address()){
             qDebug()<<"删除相同的IP";
@@ -75,19 +92,7 @@ void Server::handleNewConnection()
 }
 
 void Server::readTcpData(){
-    if(clientSocket){
-        QByteArray data = clientSocket->readLine();
-        qDebug() << "Server receive Data:" << data;
 
-        //检验用户请求
-        if(data[0]!='#' || data[1]!='#' || data[2]!='#'){
-            qDebug() << clientSocket->peerPort() << "请求不合法！\r\n";
-
-        }else{
-
-        }
-        clientSocket->write("Hello client\r\n");
-    }
 
 }
 

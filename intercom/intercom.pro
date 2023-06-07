@@ -12,11 +12,13 @@ SOURCES += \
     clientsocketitem.cpp \
     main.cpp \
     mainwindow.cpp \
+    onlineclientuiitem.cpp \
     server.cpp
 
 HEADERS += \
     clientsocketitem.h \
     mainwindow.h \
+    onlineclientuiitem.h \
     server.h
 
 FORMS += \

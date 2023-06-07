@@ -6,18 +6,29 @@
 #include <QTcpSocket>
 #include <QDebug>
 
+
 #include <clientsocketitem.h>
 
 class ClientSocketItem;
 
 class Server : public QTcpServer
 {
+    Q_OBJECT
 public:
     Server();
     static void addOnlineClient(ClientSocketItem* ClientSocketItem);
     static void deleteOnlieClient(ClientSocketItem* ClientSocketItem);
     static ClientSocketItem* getTargetClientFromOnline(QString s);
     static void showOnlineClients();
+    void emitNewClientSingals(const QString ipAddr,const short status);
+    void emitUpgradeClientStatus(const QString ipAddr,const short newStatus);
+    void emitOffLineSingal(const QString ipAddr);
+
+
+public: signals:
+    void newOnlineClient(const QString ipAddr,const short status);
+    void upgradeClientStatus(const QString ipAddr,const short newStatus);
+    void offLineSingal(const QString ipAddr);
 
 
 protected:

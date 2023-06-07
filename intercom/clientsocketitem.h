@@ -12,14 +12,20 @@
 #define IPDATA 2//IP数据帧
 #define TESTDATA 3 //测试数据帧
 
+#define DATALENGTH 256
+
 #include <QTcpSocket>
+#include <QThread>
+#include <QEventLoop>
 
 #include <server.h>
+
 
 class Server;
 
 class ClientSocketItem : public QObject
 {
+    Q_OBJECT
 public:
     ClientSocketItem(QTcpSocket *clientSocket);
     QTcpSocket* getSocket();
@@ -27,6 +33,15 @@ public:
     void setStatus(short status);
     void disconncetClient();
     QString removeLeadingZeros(const QString& ipAddress);
+
+    QThread *clientThread;
+    void sendData(const QByteArray data,int length);
+
+public: signals:
+    void requestToSend(const QByteArray data,int length);
+    void onlineClientSingal(const QString ipAddr,const short status);
+    void statusChanged(const QString ipAddr,const short newStatus);
+    void offLineSingal(const QString ipAddr);
 protected:
 
 private:
