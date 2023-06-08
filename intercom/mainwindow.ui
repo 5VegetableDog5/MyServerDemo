@@ -56,17 +56,17 @@
      <number>0</number>
     </property>
     <widget class="QWidget" name="page">
-     <widget class="QLabel" name="label">
+     <widget class="QLabel" name="label_clientCount">
       <property name="geometry">
        <rect>
         <x>30</x>
         <y>10</y>
-        <width>111</width>
+        <width>141</width>
         <height>16</height>
        </rect>
       </property>
       <property name="text">
-       <string>当前在线用户：</string>
+       <string>当前在线用户数:0</string>
       </property>
      </widget>
      <widget class="QScrollArea" name="onlineScrollArea">

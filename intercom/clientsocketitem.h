@@ -17,8 +17,10 @@
 #include <QTcpSocket>
 #include <QThread>
 #include <QEventLoop>
+#include <QDateTime>
 
 #include <server.h>
+#include "sndfile.h"
 
 
 class Server;
@@ -55,18 +57,24 @@ private:
     QByteArray data;//数据
     QByteArray header;//帧头
 
+    SF_INFO fileInfo;
+    SNDFILE* file;//录音文件
+
     QTcpSocket* clientSocket;
     ClientSocketItem* targetClientItem;
 
 
+    bool sf_write(const QByteArray buffer);
     bool setTatgetClientItem(const QString& IPAddress_port);
     bool setTatgetClientItem(ClientSocketItem* targetItem);
     bool dial(const QString& targetIP);
     void hangUPTheCall();
     void onLine();
     void offLine();
+    bool beginRecording();
 
 private slots:
+
     void readTcpData();
     void handleCloseConnection();
 };

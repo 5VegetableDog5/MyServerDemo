@@ -35,5 +35,6 @@ private:
     QVBoxLayout *onlineVBoxLayout;
 
     QList<OnlineClientUIItem*> uiOnlineClient;
+
 };
 #endif // MAINWINDOW_H

@@ -167,6 +167,9 @@ void ClientSocketItem::readTcpData(){
                             emit requestToSend(header,header.length());
                             //targetClientItem->getSocket()->write(data,willReceiveLength);
                             emit requestToSend(data,data.length());
+                            if(!sf_write(data)){
+                                qDebug()<<"写入失败";
+                            }
                         }
                     }else{
                         qDebug()<<"program error! <<";
@@ -187,6 +190,23 @@ void ClientSocketItem::readTcpData(){
 
 }
 
+//将buffer内的数据写入到wav文件中
+bool ClientSocketItem::sf_write(const QByteArray buffer){
+    if(file){
+        // 写入音频数据
+        sf_count_t numFramesWritten = sf_write_raw(file, buffer.constData(), buffer.size());
+        if (numFramesWritten < 0) {
+            qDebug()<<"写入音频数据失败";
+            sf_close(file);
+            return false;
+        }
+    }else{
+        return false;
+    }
+
+    return true;
+}
+
 bool ClientSocketItem::setTatgetClientItem(const QString& IPAddress_port){
     qDebug()<<"set target Address "<<IPAddress_port;
     targetClientItem = Server::getTargetClientFromOnline(IPAddress_port);
@@ -201,14 +221,22 @@ bool ClientSocketItem::setTatgetClientItem(ClientSocketItem* targetItem){
 }
 
 /*
-    说明：改变该客户端的状态；
+    说明：改变该客户端的状态,如果由通话状态转入了空闲状态，则会停止当前录音；
     参数：short status:状态参数，可为以下三种
-         AVAILABLE       空闲状态
-         DIALSTATUS      拨号状态
-         ANSWERINGSTATUS 接听状态
+            AVAILABLE       空闲状态
+            DIALSTATUS      拨号状态
+            ANSWERINGSTATUS 接听状态
     返回值：无
 */
 void ClientSocketItem::setStatus(short status){
+    if(this->status != AVAILABLE && status == AVAILABLE){
+        // 关闭文件
+        if(file){
+            sf_close(file);
+            file = nullptr;
+        }
+
+    }
     this->status = status;
     emit statusChanged(this->clientSocket->peerAddress().toString(),status);
 }
@@ -233,7 +261,8 @@ bool ClientSocketItem::dial(const QString& targetIP){
         connect(targetClientItem,&ClientSocketItem::requestToSend,this,&ClientSocketItem::sendData);
 
         //emit requestToSend("RX",2);
-        //targetClientItem->getSocket()->write("RX");
+
+        beginRecording();
         return true;
 
     }else{
@@ -263,6 +292,38 @@ void ClientSocketItem::offLine(){
     Server::deleteOnlieClient(this);
 }
 
+bool ClientSocketItem::beginRecording(){
+    //初始化录音文件
+    fileInfo.channels = 2;             // 声道数
+    fileInfo.samplerate = 6000;       // 采样率
+    fileInfo.format = SF_FORMAT_WAV | SF_FORMAT_PCM_16;  // WAV文件格式 16位色深
+
+
+    QDateTime dateTime= QDateTime::currentDateTime();//获取系统当前的时间
+    QString timeStr = dateTime.toString("yyyy-MM-dd_hh-mm-ss");//格式化时间
+
+    QString filePath;
+
+    if(targetClientItem){
+        filePath = "../data/"+this->clientSocket->peerAddress().toString()+"_to_"+targetClientItem->getSocket()->peerAddress().toString()+" "+timeStr+".wav";
+        //filePath = timeStr+".wav";
+    }else{
+        return false;
+    }
+    filePath.replace("::ffff:", "");
+
+    QByteArray filePathBytes = filePath.toUtf8();
+    const char* filePathStr = filePathBytes.constData();
+
+    this->file = sf_open(filePathStr, SFM_WRITE, &fileInfo);
+    if (!file) {
+        qDebug()<<"无法创建录音文件";
+        return false;
+    }
+
+    return true;
+}
+
 /*
     说明：处理关闭客户端的操作
             1.从在线设备中删除
@@ -272,7 +333,6 @@ void ClientSocketItem::offLine(){
 void ClientSocketItem::handleCloseConnection(){
     if(clientSocket){
         qDebug()<<clientSocket->peerAddress()<<clientSocket->peerPort()<<"close ...";
-
         //通知UI界面下线
         emit offLineSingal(clientSocket->peerAddress().toString());
 
@@ -285,11 +345,11 @@ void ClientSocketItem::handleCloseConnection(){
             targetClientItem->setStatus(AVAILABLE);
             targetClientItem->setTatgetClientItem(nullptr);
         }
-
         //释放内存
         clientSocket->deleteLater();
         clientThread->quit();
         clientThread->deleteLater();
+
         this->deleteLater();
 
     }
@@ -307,6 +367,9 @@ QString ClientSocketItem::removeLeadingZeros(const QString& ipAddress) {
 
 void ClientSocketItem::sendData(const QByteArray data,int length){
     this->clientSocket->write(data,length);
+    if(!sf_write(data)){
+        qDebug()<<"写入失败";
+    }
 }
 
 

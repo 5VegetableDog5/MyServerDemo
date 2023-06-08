@@ -47,6 +47,8 @@ void MainWindow::addNewOnlineClient(const QString ipAddr,const short status){
 
     uiOnlineClient << item;
 
+    ui->label_clientCount->setText("当前在线用户数:"+QString::number(uiOnlineClient.count()));
+
 }
 
 void MainWindow::upgradeOnlineClient(const QString ipAddr,const short newStatus){
@@ -62,15 +64,33 @@ void MainWindow::upgradeOnlineClient(const QString ipAddr,const short newStatus)
 void MainWindow::offLineClient(const QString ipAddr){
     for(int i = 0; i<uiOnlineClient.count(); i++){
         if(ipAddr == uiOnlineClient[i]->getIPAddr()){
-            onlineVBoxLayout->removeWidget(uiOnlineClient[i]);//在ui界面中删除该客户端
+            int index = onlineVBoxLayout->indexOf(uiOnlineClient[i]);
+
+            if(index!=-1){
+                onlineVBoxLayout->removeWidget(uiOnlineClient[i]);//在ui界面中删除该客户端
+                QLayoutItem* item = onlineVBoxLayout->itemAt(index);
+                if (item)
+                {
+                    QWidget* widget = item->widget();
+                    if (widget)
+                    {
+                        onlineVBoxLayout->removeWidget(widget);
+                        delete widget; // 手动释放或删除 QWidget 对象
+                    }
+                }
+            }
+
+
             OnlineClientUIItem *item = uiOnlineClient[i];//暂时保存该item，等会要释放掉它
             uiOnlineClient.removeAt(i);//在线用户表中删除该用户
 
             item->deleteLater();//释放内存
             //qDebug()<<"offLine";
             onlineVBoxLayout->update();
+            ui->label_clientCount->setText("当前在线用户数:"+QString::number(uiOnlineClient.count()));
             break;
         }
     }
 
 }
+
