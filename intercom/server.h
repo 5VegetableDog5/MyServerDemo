@@ -20,17 +20,21 @@ public:
     static void deleteOnlieClient(ClientSocketItem* ClientSocketItem);
     static ClientSocketItem* getTargetClientFromOnline(QString s);
     static void showOnlineClients();
+
     void emitNewClientSingals(const QString ipAddr,const short status);
     void emitUpgradeClientStatus(const QString ipAddr,const short newStatus);
     void emitOffLineSingal(const QString ipAddr);
 
+    void emitNewCalling(ClientSocketItem *dialer,ClientSocketItem *receiver);
+    void emitDeleteCalling(ClientSocketItem *dialer);
 
 public: signals:
     void newOnlineClient(const QString ipAddr,const short status);
     void upgradeClientStatus(const QString ipAddr,const short newStatus);
     void offLineSingal(const QString ipAddr);
 
-
+    void newCalling(ClientSocketItem *dialer,ClientSocketItem *receiver);
+    void deleteCalling(ClientSocketItem *dialer);
 protected:
 
 

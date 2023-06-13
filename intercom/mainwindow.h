@@ -8,6 +8,8 @@
 #include <QFrame>
 
 #include "onlineclientuiitem.h"
+#include "callingclientsuiitem.h"
+#include "clientsocketitem.h"
 #include "server.h"
 
 QT_BEGIN_NAMESPACE
@@ -23,18 +25,28 @@ public:
     ~MainWindow();
     void test();
 
+    //在线用户操作
     void addNewOnlineClient(const QString ipAddr,const short status);
     void upgradeOnlineClient(const QString ipAddr,const short newStatus);
     void offLineClient(const QString ipAddr);
+
+    //当前通话操作
+    void addNewCalling(ClientSocketItem *dialer,ClientSocketItem *receiver);
+    void deleteCalling(ClientSocketItem *dialer);
+
+    void pageChanged(int page);
+    void showOnlineClients();
+    void showCallingClients();
 
 private:
     Ui::MainWindow *ui;
     Server *server;
 
-    QScrollArea *onlineScrollArea;
     QVBoxLayout *onlineVBoxLayout;
+    QVBoxLayout *callingVBoxLayout;
 
     QList<OnlineClientUIItem*> uiOnlineClient;
+    QList<CallingClientsUIItem*> uiCallingItems;
 
 };
 #endif // MAINWINDOW_H

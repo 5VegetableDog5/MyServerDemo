@@ -52,6 +52,9 @@ ClientSocketItem* Server::getTargetClientFromOnline(QString targetIP){
     return NULL;
 }
 
+/*
+    命令窗口打印当前在线客户端
+*/
 void Server::showOnlineClients(){
     qDebug() <<"当前在线客户端：" << onlineClients.size();
     for(int i = 0;i<onlineClients.size();i++){
@@ -73,6 +76,14 @@ void Server::emitOffLineSingal(const QString ipAddr){
     emit offLineSingal(ipAddr);
 }
 
+void Server::emitNewCalling(ClientSocketItem *dialer,ClientSocketItem *receiver){
+    emit newCalling(dialer,receiver);
+}
+
+void Server::emitDeleteCalling(ClientSocketItem *dialer){
+    emit deleteCalling(dialer);
+}
+
 void Server::handleNewConnection()
 {
     //处理新连接
@@ -83,6 +94,8 @@ void Server::handleNewConnection()
     connect(cst,&ClientSocketItem::onlineClientSingal,this,&Server::emitNewClientSingals);
     connect(cst,&ClientSocketItem::statusChanged,this,&Server::emitUpgradeClientStatus);
     connect(cst,&ClientSocketItem::offLineSingal,this,&Server::emitOffLineSingal);
+    connect(cst,&ClientSocketItem::call,this,&Server::newCalling);
+    connect(cst,&ClientSocketItem::hangUp,this,&Server::deleteCalling);
     for(int i = 0;i<onlineClients.size();i++){
         if(onlineClients[i]->getSocket()->peerAddress().toIPv4Address() == clientSocket->peerAddress().toIPv4Address()){
             qDebug()<<"删除相同的IP";

@@ -30,19 +30,6 @@
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton">
-    <property name="geometry">
-     <rect>
-      <x>40</x>
-      <y>120</y>
-      <width>93</width>
-      <height>29</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>PushButton</string>
-    </property>
-   </widget>
    <widget class="QStackedWidget" name="stackedWidget">
     <property name="geometry">
      <rect>
@@ -101,7 +88,7 @@
         <height>41</height>
        </rect>
       </property>
-      <layout class="QHBoxLayout" name="horizontalLayout">
+      <layout class="QHBoxLayout" name="onlineHorizontalLayout">
        <item>
         <widget class="QLabel" name="label_ip">
          <property name="text">
@@ -125,7 +112,139 @@
       </layout>
      </widget>
     </widget>
-    <widget class="QWidget" name="page_2"/>
+    <widget class="QWidget" name="page_2">
+     <widget class="QLabel" name="label_Calling">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>20</y>
+        <width>81</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>通话概况 0</string>
+      </property>
+     </widget>
+     <widget class="QWidget" name="horizontalLayoutWidget_2">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>60</y>
+        <width>461</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <layout class="QHBoxLayout" name="callingHorizontalLayout">
+       <item>
+        <widget class="QLabel" name="label_dialIP">
+         <property name="text">
+          <string>拨号IP</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_receiverIP">
+         <property name="text">
+          <string>接听IP</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QScrollArea" name="callingScrollArea">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>100</y>
+        <width>461</width>
+        <height>281</height>
+       </rect>
+      </property>
+      <property name="widgetResizable">
+       <bool>true</bool>
+      </property>
+      <widget class="QWidget" name="scrollAreaWidgetContents_2">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>459</width>
+         <height>279</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+    </widget>
+   </widget>
+   <widget class="QFrame" name="verticalFrame">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>170</y>
+      <width>151</width>
+      <height>141</height>
+     </rect>
+    </property>
+    <widget class="QLabel" name="label_2">
+     <property name="geometry">
+      <rect>
+       <x>1</x>
+       <y>1</y>
+       <width>69</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>查看:</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButton_Calling">
+     <property name="geometry">
+      <rect>
+       <x>1</x>
+       <y>111</y>
+       <width>93</width>
+       <height>29</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>当前通话</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButton_Online">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>50</y>
+       <width>93</width>
+       <height>29</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>在线用户</string>
+     </property>
+    </widget>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

@@ -30,10 +30,14 @@ class ClientSocketItem : public QObject
     Q_OBJECT
 public:
     ClientSocketItem(QTcpSocket *clientSocket);
+    ClientSocketItem();
     QTcpSocket* getSocket();
     short getStatus();
     void setStatus(short status);
     void disconncetClient();
+    void hangUPTheCall();
+    void hangUPed();
+
     QString removeLeadingZeros(const QString& ipAddress);
 
     QThread *clientThread;
@@ -44,6 +48,10 @@ public: signals:
     void onlineClientSingal(const QString ipAddr,const short status);
     void statusChanged(const QString ipAddr,const short newStatus);
     void offLineSingal(const QString ipAddr);
+    void requestToHangup();
+
+    void call(ClientSocketItem *dialer,ClientSocketItem *receiver);
+    void hangUp(ClientSocketItem *dialer);
 protected:
 
 private:
@@ -68,7 +76,7 @@ private:
     bool setTatgetClientItem(const QString& IPAddress_port);
     bool setTatgetClientItem(ClientSocketItem* targetItem);
     bool dial(const QString& targetIP);
-    void hangUPTheCall();
+
     void onLine();
     void offLine();
     bool beginRecording();

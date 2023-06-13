@@ -25,6 +25,10 @@ ClientSocketItem::ClientSocketItem(QTcpSocket *clientSocket):clientThread(new QT
     qDebug()<<"start new Thread!";
 }
 
+ClientSocketItem::ClientSocketItem(){
+
+}
+
 
 void ClientSocketItem::readTcpData(){
 
@@ -229,7 +233,7 @@ bool ClientSocketItem::setTatgetClientItem(ClientSocketItem* targetItem){
     返回值：无
 */
 void ClientSocketItem::setStatus(short status){
-    if(this->status != AVAILABLE && status == AVAILABLE){
+    if(this->status == DIALSTATUS && status == AVAILABLE){
         // 关闭文件
         if(file){
             sf_close(file);
@@ -259,10 +263,14 @@ bool ClientSocketItem::dial(const QString& targetIP){
         //连接信号函数和槽函数用于两个CLient之间的通讯
         connect(this,&ClientSocketItem::requestToSend,targetClientItem,&ClientSocketItem::sendData);
         connect(targetClientItem,&ClientSocketItem::requestToSend,this,&ClientSocketItem::sendData);
+        connect(this,&ClientSocketItem::requestToHangup,targetClientItem,&ClientSocketItem::hangUPed);
 
         //emit requestToSend("RX",2);
 
-        beginRecording();
+        //通知Server转发至UI
+        emit call(this,targetClientItem);
+
+        beginRecording();//开始录音
         return true;
 
     }else{
@@ -271,10 +279,26 @@ bool ClientSocketItem::dial(const QString& targetIP){
     return false;
 }
 
-void ClientSocketItem::hangUPTheCall(){//挂电话
+void ClientSocketItem::hangUPTheCall(){//主动挂电话
+
+
+
+    //断开信号函数和槽函数用于两个CLient之间的通讯
+    disconnect(this,&ClientSocketItem::requestToSend,targetClientItem,&ClientSocketItem::sendData);
+    disconnect(targetClientItem,&ClientSocketItem::requestToSend,this,&ClientSocketItem::sendData);
+    disconnect(this,&ClientSocketItem::requestToHangup,targetClientItem,&ClientSocketItem::hangUPed);
+
+    //通知Server 转发至UI
+    emit hangUp(this);
+
+    emit requestToHangup();
     setStatus(AVAILABLE);
-    targetClientItem->setStatus(AVAILABLE);
-    targetClientItem->setTatgetClientItem(NULL);
+
+    setTatgetClientItem(NULL);
+}
+
+void ClientSocketItem::hangUPed(){//被动挂电话
+    setStatus(AVAILABLE);
     setTatgetClientItem(NULL);
 }
 

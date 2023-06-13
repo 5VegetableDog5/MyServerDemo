@@ -10,20 +10,36 @@ MainWindow::MainWindow(QWidget *parent)
     /* 注意！该初始化不能在Main中进行，否则会出现未知问题导致程序无法正常运行！！！ */
     this->server = new Server();
 
-    QWidget  *scrollAreaContent = new QWidget ();
-    ui->onlineScrollArea->setWidgetResizable(true);//窗口自适应
-    ui->onlineScrollArea->setWidget(scrollAreaContent);//设置滚动窗口的QWidget
+    QWidget  *onlineScrollAreaContent = new QWidget ();
+    QWidget  *callingScrollAreaContent = new QWidget ();
 
-    this->onlineVBoxLayout = new QVBoxLayout(scrollAreaContent);//创建垂直布局
+    ui->onlineScrollArea->setWidgetResizable(true);//窗口自适应
+    ui->onlineScrollArea->setWidget(onlineScrollAreaContent);//设置滚动窗口的QWidget
+
+    ui->callingScrollArea->setWidgetResizable(true);
+    ui->callingScrollArea->setWidget(callingScrollAreaContent);//同上
+
+    this->onlineVBoxLayout = new QVBoxLayout(onlineScrollAreaContent);//创建垂直布局
+    this->callingVBoxLayout = new QVBoxLayout(callingScrollAreaContent);
 
 
     ui->label_ip->setStyleSheet("border: 1px solid black;");
     ui->label_status->setStyleSheet("border: 1px solid black;");
+    ui->label_dialIP->setStyleSheet("border: 1px solid black;");
+    ui->label_receiverIP->setStyleSheet("border: 1px solid black;");
+    ui->label_3->setStyleSheet("border: 1px solid black;");
+    ui->label_4->setStyleSheet("border: 1px solid black;");
 
 
     connect(server,&Server::newOnlineClient,this,&MainWindow::addNewOnlineClient);
     connect(server,&Server::upgradeClientStatus,this,&MainWindow::upgradeOnlineClient);
     connect(server,&Server::offLineSingal,this,&MainWindow::offLineClient);
+
+    connect(server,&Server::newCalling,this,&MainWindow::addNewCalling);
+    connect(server,&Server::deleteCalling,this,&MainWindow::deleteCalling);
+
+    connect(ui->pushButton_Online,&QPushButton::clicked,this,&MainWindow::showOnlineClients);
+    connect(ui->pushButton_Calling,&QPushButton::clicked,this,&MainWindow::showCallingClients);
 }
 
 MainWindow::~MainWindow()
@@ -32,7 +48,7 @@ MainWindow::~MainWindow()
 }
 
 void MainWindow::test(){
-    qDebug() << "asdasd";
+    //qDebug() << "asdasd";
 }
 
 void MainWindow::addNewOnlineClient(const QString ipAddr,const short status){
@@ -55,7 +71,7 @@ void MainWindow::upgradeOnlineClient(const QString ipAddr,const short newStatus)
     for(int i = 0; i<uiOnlineClient.count(); i++){
         if(ipAddr == uiOnlineClient[i]->getIPAddr()){
             uiOnlineClient[i]->updataStatus(newStatus);
-            //qDebug()<<"upgrade status"<<ipAddr<<newStatus;
+            //qDebug()<<"update status"<<ipAddr<<newStatus;
         }
     }
     onlineVBoxLayout->update();
@@ -74,7 +90,7 @@ void MainWindow::offLineClient(const QString ipAddr){
                     QWidget* widget = item->widget();
                     if (widget)
                     {
-                        onlineVBoxLayout->removeWidget(widget);
+                        onlineVBoxLayout->removeWidget(widget);//删除分割线
                         delete widget; // 手动释放或删除 QWidget 对象
                     }
                 }
@@ -92,5 +108,63 @@ void MainWindow::offLineClient(const QString ipAddr){
         }
     }
 
+}
+
+void MainWindow::addNewCalling(ClientSocketItem *dialer,ClientSocketItem *receiver){
+    CallingClientsUIItem *item = new CallingClientsUIItem(nullptr,dialer,receiver);
+    callingVBoxLayout->addWidget(item);
+
+    //添加一条横线
+    callingVBoxLayout->addWidget(new QFrame);
+    QFrame* separator = qobject_cast<QFrame*>(onlineVBoxLayout->itemAt(onlineVBoxLayout->count() - 1)->widget());
+    separator->setFrameShape(QFrame::HLine);
+    separator->setFrameShadow(QFrame::Sunken);
+
+    uiCallingItems << item;
+
+    ui->label_Calling->setText("通话概况 "+QString::number(uiCallingItems.count()));
+}
+
+void MainWindow::deleteCalling(ClientSocketItem *dialer){
+    for(int i = 0; i<uiCallingItems.count(); i++){
+        if(dialer == uiCallingItems[i]->getDialer()){
+            int index = callingVBoxLayout->indexOf(uiCallingItems[i]);
+
+            if(index!=-1){
+                callingVBoxLayout->removeWidget(uiCallingItems[i]);//在ui界面中删除该客户端
+                QLayoutItem* item = callingVBoxLayout->itemAt(index);
+                if (item)
+                {
+                    QWidget* widget = item->widget();
+                    if (widget)
+                    {
+                        callingVBoxLayout->removeWidget(widget);//删除分割线
+                        delete widget; // 手动释放或删除 QWidget 对象
+                    }
+                }
+            }
+
+
+            CallingClientsUIItem *item = uiCallingItems[i];//暂时保存该item，等会要释放掉它
+            uiCallingItems.removeAt(i);//在线用户表中删除该用户
+
+            item->deleteLater();//释放内存
+            callingVBoxLayout->update();
+            ui->label_Calling->setText("通话概况 "+QString::number(uiCallingItems.count()));
+            break;
+        }
+    }
+    //qDebug()<<"error deleteCallingItem!";
+}
+
+void MainWindow::pageChanged(int page){
+    ui->stackedWidget->setCurrentIndex(page%ui->stackedWidget->count());
+}
+
+void MainWindow::showOnlineClients(){
+    pageChanged(0);
+}
+void MainWindow::showCallingClients(){
+    pageChanged(1);
 }
 
