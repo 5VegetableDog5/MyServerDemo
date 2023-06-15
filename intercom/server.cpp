@@ -95,11 +95,17 @@ void Server::handleNewConnection()
     connect(cst,&ClientSocketItem::statusChanged,this,&Server::emitUpgradeClientStatus);
     connect(cst,&ClientSocketItem::offLineSingal,this,&Server::emitOffLineSingal);
     connect(cst,&ClientSocketItem::call,this,&Server::newCalling);
-    connect(cst,&ClientSocketItem::hangUp,this,&Server::deleteCalling);
+    connect(cst,&ClientSocketItem::hangUp,this,&Server::emitDeleteCalling);
+
+}
+
+void Server::searchSameIP(ClientSocketItem *client){
     for(int i = 0;i<onlineClients.size();i++){
-        if(onlineClients[i]->getSocket()->peerAddress().toIPv4Address() == clientSocket->peerAddress().toIPv4Address()){
+        if(onlineClients[i]->getSocket()->peerAddress().toIPv4Address() == client->getSocket()->peerAddress().toIPv4Address()){
             qDebug()<<"删除相同的IP";
             onlineClients[i]->disconncetClient();
+            onlineClients.removeOne(onlineClients[i]);
+            break;
         }
     }
 }

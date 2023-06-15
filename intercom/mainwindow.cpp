@@ -27,6 +27,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->label_status->setStyleSheet("border: 1px solid black;");
     ui->label_dialIP->setStyleSheet("border: 1px solid black;");
     ui->label_receiverIP->setStyleSheet("border: 1px solid black;");
+    ui->label_CallingStatus->setStyleSheet("border: 1px solid black;");
     ui->label_3->setStyleSheet("border: 1px solid black;");
     ui->label_4->setStyleSheet("border: 1px solid black;");
 
@@ -78,6 +79,10 @@ void MainWindow::upgradeOnlineClient(const QString ipAddr,const short newStatus)
 }
 
 void MainWindow::offLineClient(const QString ipAddr){
+    if(ipAddr == nullptr || ipAddr.isEmpty()){
+        qDebug()<<"MainWindow 82行 offLineClient ipAddr is null ";
+        return;
+    }
     for(int i = 0; i<uiOnlineClient.count(); i++){
         if(ipAddr == uiOnlineClient[i]->getIPAddr()){
             int index = onlineVBoxLayout->indexOf(uiOnlineClient[i]);

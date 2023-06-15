@@ -20,6 +20,7 @@ public:
     static void deleteOnlieClient(ClientSocketItem* ClientSocketItem);
     static ClientSocketItem* getTargetClientFromOnline(QString s);
     static void showOnlineClients();
+    static void searchSameIP(ClientSocketItem *client);
 
     void emitNewClientSingals(const QString ipAddr,const short status);
     void emitUpgradeClientStatus(const QString ipAddr,const short newStatus);
@@ -27,6 +28,7 @@ public:
 
     void emitNewCalling(ClientSocketItem *dialer,ClientSocketItem *receiver);
     void emitDeleteCalling(ClientSocketItem *dialer);
+
 
 public: signals:
     void newOnlineClient(const QString ipAddr,const short status);
