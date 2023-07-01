@@ -35,7 +35,7 @@
      <rect>
       <x>190</x>
       <y>120</y>
-      <width>491</width>
+      <width>501</width>
       <height>401</height>
      </rect>
     </property>
@@ -167,6 +167,13 @@
         </widget>
        </item>
        <item>
+        <widget class="QLabel" name="label_CallingTime">
+         <property name="text">
+          <string>通话时长</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QLabel" name="label_3">
          <property name="text">
           <string>备用</string>
@@ -179,7 +186,7 @@
        <item>
         <widget class="QLabel" name="label_4">
          <property name="text">
-          <string>强制下线</string>
+          <string>强制结束</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -191,9 +198,9 @@
      <widget class="QScrollArea" name="callingScrollArea">
       <property name="geometry">
        <rect>
-        <x>30</x>
+        <x>20</x>
         <y>100</y>
-        <width>461</width>
+        <width>481</width>
         <height>281</height>
        </rect>
       </property>
@@ -205,7 +212,7 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>459</width>
+         <width>479</width>
          <height>279</height>
         </rect>
        </property>

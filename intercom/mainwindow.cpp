@@ -6,6 +6,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    labelInit();
 
     /* 注意！该初始化不能在Main中进行，否则会出现未知问题导致程序无法正常运行！！！ */
     this->server = new Server();
@@ -22,16 +23,6 @@ MainWindow::MainWindow(QWidget *parent)
     this->onlineVBoxLayout = new QVBoxLayout(onlineScrollAreaContent);//创建垂直布局
     this->callingVBoxLayout = new QVBoxLayout(callingScrollAreaContent);
 
-
-    ui->label_ip->setStyleSheet("border: 1px solid black;");
-    ui->label_status->setStyleSheet("border: 1px solid black;");
-    ui->label_dialIP->setStyleSheet("border: 1px solid black;");
-    ui->label_receiverIP->setStyleSheet("border: 1px solid black;");
-    ui->label_CallingStatus->setStyleSheet("border: 1px solid black;");
-    ui->label_3->setStyleSheet("border: 1px solid black;");
-    ui->label_4->setStyleSheet("border: 1px solid black;");
-
-
     connect(server,&Server::newOnlineClient,this,&MainWindow::addNewOnlineClient);
     connect(server,&Server::upgradeClientStatus,this,&MainWindow::upgradeOnlineClient);
     connect(server,&Server::offLineSingal,this,&MainWindow::offLineClient);
@@ -45,11 +36,22 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    server->deleteLater();
+    onlineVBoxLayout->deleteLater();
+    callingVBoxLayout->deleteLater();
+
     delete ui;
 }
 
-void MainWindow::test(){
-    //qDebug() << "asdasd";
+void MainWindow::labelInit(){
+    ui->label_ip->setStyleSheet("border: 1px solid black;");
+    ui->label_status->setStyleSheet("border: 1px solid black;");
+    ui->label_dialIP->setStyleSheet("border: 1px solid black;");
+    ui->label_receiverIP->setStyleSheet("border: 1px solid black;");
+    ui->label_CallingStatus->setStyleSheet("border: 1px solid black;");
+    ui->label_3->setStyleSheet("border: 1px solid black;");
+    ui->label_4->setStyleSheet("border: 1px solid black;");
+    ui->label_CallingTime->setStyleSheet("border: 1px solid black;");
 }
 
 void MainWindow::addNewOnlineClient(const QString ipAddr,const short status){
@@ -86,7 +88,6 @@ void MainWindow::offLineClient(const QString ipAddr){
     for(int i = 0; i<uiOnlineClient.count(); i++){
         if(ipAddr == uiOnlineClient[i]->getIPAddr()){
             int index = onlineVBoxLayout->indexOf(uiOnlineClient[i]);
-
             if(index!=-1){
                 onlineVBoxLayout->removeWidget(uiOnlineClient[i]);//在ui界面中删除该客户端
                 QLayoutItem* item = onlineVBoxLayout->itemAt(index);
@@ -130,9 +131,12 @@ void MainWindow::addNewCalling(ClientSocketItem *dialer,ClientSocketItem *receiv
     ui->label_Calling->setText("通话概况 "+QString::number(uiCallingItems.count()));
 }
 
+/*
+ * 注意：传进来的参数既可以是拨号者也可以是接听者，不要被变量名误导（懒得改了）
+*/
 void MainWindow::deleteCalling(ClientSocketItem *dialer){
     for(int i = 0; i<uiCallingItems.count(); i++){
-        if(dialer == uiCallingItems[i]->getDialer()){
+        if(dialer == uiCallingItems[i]->getDialer() || dialer == uiCallingItems[i]->getReceiver()){
             int index = callingVBoxLayout->indexOf(uiCallingItems[i]);
 
             if(index!=-1){

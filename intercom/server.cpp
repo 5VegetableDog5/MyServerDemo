@@ -4,6 +4,10 @@ QList<ClientSocketItem*> Server::onlineClients;
 
 Server::Server()
 {
+    QDir dir;
+    if (!dir.exists("data")) { // 检查文件夹是否已存在
+        creatDir("data");
+    }
 
     server = new QTcpServer(this);
 
@@ -108,6 +112,27 @@ void Server::searchSameIP(ClientSocketItem *client){
             break;
         }
     }
+}
+
+bool Server::creatDir(QString path){
+    QString folderPath = "C:/MyFolder"; // 设置文件夹路径
+
+    QDir dir;
+    if (!dir.exists(path)) { // 检查文件夹是否已存在
+        if (dir.mkpath(path)) { // 创建文件夹
+            qDebug() << "文件夹创建成功！";
+
+        } else {
+
+            qDebug() << "无法创建文件夹。";
+            return false;
+        }
+    } else {
+        qDebug() << "文件夹已存在。";
+        return false;
+    }
+
+    return true;
 }
 
 void Server::readTcpData(){

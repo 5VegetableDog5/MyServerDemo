@@ -25,6 +25,8 @@ public:
     ~MainWindow();
     void test();
 
+    void labelInit();
+
     //在线用户操作
     void addNewOnlineClient(const QString ipAddr,const short status);
     void upgradeOnlineClient(const QString ipAddr,const short newStatus);

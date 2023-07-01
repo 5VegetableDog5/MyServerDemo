@@ -5,6 +5,7 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QDebug>
+#include <QDir>
 
 
 #include <clientsocketitem.h>
@@ -49,6 +50,7 @@ private slots:
     void readTcpData();
     void handleNewConnection();
     void handleCloseConnection();
+    bool creatDir(QString path);
 };
 
 #endif // SERVER_H

@@ -20,6 +20,7 @@
 #include <QDateTime>
 #include <QTimer>
 
+
 #include <server.h>
 #include "sndfile.h"
 
@@ -114,6 +115,8 @@ private:
     void onLine();
     void offLine();
     bool beginRecording();
+
+
 
 private slots:
 

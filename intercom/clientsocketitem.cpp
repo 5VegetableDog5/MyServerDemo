@@ -538,8 +538,13 @@ void ClientSocketItem::onLine(){
 }
 
 void ClientSocketItem::offLine(){
-    this->legality = false;
     hangUPTheCall();
+    if(this->status != AVAILABLE)
+        emit hangUp(this);
+    emit offLineSingal(clientSocket->peerAddress().toString());
+
+    this->legality = false;
+
     Server::deleteOnlieClient(this);
 }
 
@@ -556,7 +561,7 @@ bool ClientSocketItem::beginRecording(){
     QString filePath;
 
     if(targetClientItem){
-        filePath = "../data/"+this->clientSocket->peerAddress().toString()+"_to_"+targetClientItem->getSocket()->peerAddress().toString()+" "+timeStr+".wav";
+        filePath = "data/"+this->clientSocket->peerAddress().toString()+"_to_"+targetClientItem->getSocket()->peerAddress().toString()+" "+timeStr+".wav";
         //filePath = timeStr+".wav";
     }else{
         return false;
@@ -566,6 +571,8 @@ bool ClientSocketItem::beginRecording(){
     QByteArray filePathBytes = filePath.toUtf8();
     const char* filePathStr = filePathBytes.constData();
 
+
+
     this->file = sf_open(filePathStr, SFM_WRITE, &fileInfo);
     if (!file) {
         qDebug()<<"无法创建录音文件";
@@ -574,6 +581,8 @@ bool ClientSocketItem::beginRecording(){
 
     return true;
 }
+
+
 
 /*
     说明：处理关闭客户端的操作
@@ -587,6 +596,10 @@ void ClientSocketItem::handleCloseConnection(){
             qDebug()<<clientSocket->peerAddress()<<clientSocket->peerPort()<<"close ...";
             //通知UI界面下线
             emit offLineSingal(clientSocket->peerAddress().toString());
+            if(this->status != AVAILABLE)
+                emit hangUp(this);
+        }else{
+            qDebug()<<"UI下线失败"<<clientSocket->peerAddress().toString();
         }
 
 
@@ -659,6 +672,13 @@ void ClientSocketItem::rebackACKFrame(int num){
 
 void ClientSocketItem::disconncetClient(){
     if(clientSocket){
+        if(this->status != AVAILABLE){
+            hangUPTheCall();
+        }
+
+        if(this->status != AVAILABLE)
+            emit hangUp(this);
+
         //通知UI界面下线
         emit offLineSingal(clientSocket->peerAddress().toString());
 
