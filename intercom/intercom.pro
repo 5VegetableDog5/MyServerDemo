@@ -11,6 +11,7 @@ CONFIG += c++17
 SOURCES += \
     callingclientsuiitem.cpp \
     clientsocketitem.cpp \
+    global_volume.cpp \
     main.cpp \
     mainwindow.cpp \
     onlineclientuiitem.cpp \
@@ -19,6 +20,7 @@ SOURCES += \
 HEADERS += \
     callingclientsuiitem.h \
     clientsocketitem.h \
+    config.h \
     mainwindow.h \
     onlineclientuiitem.h \
     server.h

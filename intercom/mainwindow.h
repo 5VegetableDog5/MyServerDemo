@@ -6,15 +6,19 @@
 #include <QVBoxLayout>
 #include <QDebug>
 #include <QFrame>
+#include <QTextBrowser>
 
 #include "onlineclientuiitem.h"
 #include "callingclientsuiitem.h"
 #include "clientsocketitem.h"
 #include "server.h"
+#include "config.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
+
+void printfLog(QString string);
 
 class MainWindow : public QMainWindow
 {

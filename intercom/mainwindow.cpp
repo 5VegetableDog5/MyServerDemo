@@ -1,6 +1,9 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+//日志信息窗口（全局变量）
+QTextBrowser *logBrowser;
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -10,6 +13,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     /* 注意！该初始化不能在Main中进行，否则会出现未知问题导致程序无法正常运行！！！ */
     this->server = new Server();
+    logBrowser = ui->logBrowser;
 
     QWidget  *onlineScrollAreaContent = new QWidget ();
     QWidget  *callingScrollAreaContent = new QWidget ();
@@ -176,4 +180,6 @@ void MainWindow::showOnlineClients(){
 void MainWindow::showCallingClients(){
     pageChanged(1);
 }
+
+
 

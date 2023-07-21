@@ -12,7 +12,7 @@
 #define IPDATA 2//IP数据帧
 #define TESTDATA 3 //测试数据帧
 
-#define DATALENGTH 256
+#define DATALENGTH 1024
 
 #include <QTcpSocket>
 #include <QThread>
@@ -23,7 +23,7 @@
 
 #include <server.h>
 #include "sndfile.h"
-
+#include "config.h"
 
 class Server;
 
@@ -64,6 +64,7 @@ private:
     bool legality;
     short legalityCount;
     short status;
+    bool loginedFlag = false;
 
     //0:未启用 1:未应答 2:同意接听 3:拒绝接听
     short AGREEANSWERING = 0;
@@ -110,6 +111,7 @@ private:
     bool frameInited();
     void initFrame();
     void requestSendDataFrameHeader();
+    void cleanNeedlessZero();
 
 
     void onLine();
