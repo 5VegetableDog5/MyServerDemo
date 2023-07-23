@@ -27,6 +27,10 @@ MainWindow::MainWindow(QWidget *parent)
     this->onlineVBoxLayout = new QVBoxLayout(onlineScrollAreaContent);//创建垂直布局
     this->callingVBoxLayout = new QVBoxLayout(callingScrollAreaContent);
 
+#if DEBUG
+        printfLog("Server start!");
+#endif
+
     connect(server,&Server::newOnlineClient,this,&MainWindow::addNewOnlineClient);
     connect(server,&Server::upgradeClientStatus,this,&MainWindow::upgradeOnlineClient);
     connect(server,&Server::offLineSingal,this,&MainWindow::offLineClient);

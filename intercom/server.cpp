@@ -13,7 +13,10 @@ Server::Server()
 
     //监听8888端口
     if (!server->listen(QHostAddress::Any, 8888)) {
-        qDebug() << "Failed to start server \n";
+#if DEBUG
+        //qDebug() << "Failed to start server \n";
+        printfLog("Failed to start server");
+#endif
     } else {
         qDebug() << "Server started on port" << server->serverPort() <<" " <<server->serverAddress() << "\n";
     }

@@ -9,6 +9,7 @@
 
 
 #include <clientsocketitem.h>
+#include "config.h"
 
 class ClientSocketItem;
 
