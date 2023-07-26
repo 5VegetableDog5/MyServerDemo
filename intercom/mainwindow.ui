@@ -36,7 +36,7 @@
       <x>180</x>
       <y>60</y>
       <width>501</width>
-      <height>401</height>
+      <height>381</height>
      </rect>
     </property>
     <property name="currentIndex">
@@ -62,7 +62,7 @@
         <x>20</x>
         <y>90</y>
         <width>461</width>
-        <height>301</height>
+        <height>281</height>
        </rect>
       </property>
       <property name="widgetResizable">
@@ -74,7 +74,7 @@
          <x>0</x>
          <y>0</y>
          <width>459</width>
-         <height>299</height>
+         <height>279</height>
         </rect>
        </property>
       </widget>
