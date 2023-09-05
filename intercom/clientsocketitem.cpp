@@ -221,25 +221,7 @@ void ClientSocketItem::readTcpData(){
             }
 
             if(willreceive == IPDATA){//1.IP数据帧
-                if(this->status == AVAILABLE && clientSocket->bytesAvailable() >= 15){
-                    data = clientSocket->read(15);
-                    if(this->legality){//确保已经注册且在线
-                        strdata = new QString(data);
-#if DEBUG
-                        printfLog(this->clientSocket->peerAddress().toString()+" 对 "+(*strdata) + "进行拨号");
-#endif
-                        dial(removeLeadingZeros(*strdata));//尝试拨号
-                    }
-
-                }else{
-                    clientSocket->read(15);
-                    rebackACKFrame(1);
-                    willreceive = HEADER;
-                    willReceiveLength = 0;
-                    continue;
-                }
-                willreceive = HEADER;
-                willReceiveLength = 0;
+                handleIPDATA();
                 continue;
             }else if(willreceive == SOUNDDATA){//2.音频数据帧
                 if(clientSocket->bytesAvailable() >=willReceiveLength){
@@ -393,6 +375,8 @@ bool ClientSocketItem::setTatgetClientItem(ClientSocketItem* targetItem){
     返回值：无
 */
 void ClientSocketItem::setStatus(short status){
+#if RECODE
+
     if(this->status == DIALSTATUS && status == AVAILABLE){
         // 关闭文件
         if(file){
@@ -401,6 +385,7 @@ void ClientSocketItem::setStatus(short status){
         }
 
     }
+#endif
     this->status = status;
     emit statusChanged(this->clientSocket->peerAddress().toString(),status);
 }
@@ -545,8 +530,10 @@ void ClientSocketItem::hangUPTheCall(){//主动挂电话
 
     //通知Server 转发至UI
     emit hangUp(this);
+        qDebug()<<"123";
 
     emit requestToHangup();
+        qDebug()<<"1234";
     setStatus(AVAILABLE);
 
     //断开信号函数和槽函数用于两个CLient之间的通讯
@@ -560,12 +547,13 @@ void ClientSocketItem::hangUPTheCall(){//主动挂电话
     disconnect(targetClientItem,&ClientSocketItem::requestToANSWER,this,&ClientSocketItem::beginWaitANSER);
 
     setTatgetClientItem(nullptr);
-    qDebug()<<"123";
+    qDebug()<<"12345";
 }
 
 void ClientSocketItem::hangUPed(){//被动挂电话
     AGREEANSWERING = 0;
     setStatus(AVAILABLE);
+    qDebug()<<"hangup123";
     setTatgetClientItem(nullptr);
 }
 
@@ -603,6 +591,8 @@ void ClientSocketItem::offLine(){
     Server::deleteOnlieClient(this);
 }
 
+#if RECODE
+
 bool ClientSocketItem::beginRecording(){
     //初始化录音文件
     fileInfo.channels = 2;             // 声道数
@@ -634,6 +624,37 @@ bool ClientSocketItem::beginRecording(){
         return false;
     }
 
+    return true;
+}
+
+#endif
+
+/*
+ * 处理IP数据帧后面的数据部分
+ * 如果接收到正确格式的数据，返回true，否则返回false
+ * 当前函数可能存在问题，当tcp流中不足15字节时的处理可能会出现问题
+ *
+*/
+bool ClientSocketItem::handleIPDATA(){
+    if(this->status == AVAILABLE && clientSocket->bytesAvailable() >= 15){
+        data = clientSocket->read(15);
+        if(this->legality){//确保已经注册且在线
+            strdata = new QString(data);
+#if DEBUG
+            printfLog(this->clientSocket->peerAddress().toString()+" 对 "+(*strdata) + "进行拨号");
+#endif
+            dial(removeLeadingZeros(*strdata));//尝试拨号
+        }
+
+    }else{
+        //clientSocket->read(15);
+        //rebackACKFrame(1);
+        //willreceive = HEADER;
+        //willReceiveLength = 0;
+        return false;
+    }
+    willreceive = HEADER;
+    willReceiveLength = 0;
     return true;
 }
 

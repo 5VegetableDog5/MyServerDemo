@@ -164,7 +164,7 @@ void MainWindow::deleteCalling(ClientSocketItem *dialer){
 
             CallingClientsUIItem *item = uiCallingItems[i];//暂时保存该item，等会要释放掉它
             uiCallingItems.removeAt(i);//在线用户表中删除该用户
-
+            qDebug()<<"789789";
             item->deleteLater();//释放内存
             callingVBoxLayout->update();
             ui->label_Calling->setText("通话概况 "+QString::number(uiCallingItems.count()));

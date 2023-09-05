@@ -1,8 +1,6 @@
 #ifndef CLIENTSOCKETITEM_H
 #define CLIENTSOCKETITEM_H
 
-
-#define LEGALITYMAXCOUNT 5   //最大合法性验证次数
 #define AVAILABLE        0   //空闲状态
 #define DIALSTATUS       1   //拨号状态
 #define ANSWERINGSTATUS  2   //接听状态
@@ -11,8 +9,6 @@
 #define SOUNDDATA 1 //音频数据帧
 #define IPDATA 2//IP数据帧
 #define TESTDATA 3 //测试数据帧
-
-#define DATALENGTH 1024
 
 #include <QTcpSocket>
 #include <QThread>
@@ -117,6 +113,9 @@ private:
     void onLine();
     void offLine();
     bool beginRecording();
+
+    //针对TCP流的处理函数
+    bool handleIPDATA();
 
 
 
