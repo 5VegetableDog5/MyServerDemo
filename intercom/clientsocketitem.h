@@ -37,6 +37,10 @@ public:
     void hangUPed();
     void beginWaitANSER();
 
+#if MONITOR
+    void setMonitor(bool STATUS);
+#endif
+
     QString removeLeadingZeros(const QString& ipAddress);
 
     QThread *clientThread;
@@ -61,6 +65,11 @@ private:
     short legalityCount;
     short status;
     bool loginedFlag = false;
+
+#if MONITOR
+    //监听器 false：关闭； true：打开；
+    bool monitor = false;
+#endif
 
     //0:未启用 1:未应答 2:同意接听 3:拒绝接听
     short AGREEANSWERING = 0;

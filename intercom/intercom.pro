@@ -12,8 +12,10 @@ SOURCES += \
     callingclientsuiitem.cpp \
     clientsocketitem.cpp \
     global_volume.cpp \
+    history.cpp \
     main.cpp \
     mainwindow.cpp \
+    odbc.cpp \
     onlineclientuiitem.cpp \
     server.cpp
 
@@ -21,18 +23,32 @@ HEADERS += \
     callingclientsuiitem.h \
     clientsocketitem.h \
     config.h \
+    history.h \
     mainwindow.h \
+    odbc.h \
     onlineclientuiitem.h \
     server.h
 
 FORMS += \
     callingclientsuiitem.ui \
+    history.ui \
     mainwindow.ui
 
-QT += network
+QT += network \
+    multimedia \
+    sql
 
-INCLUDEPATH += ../externalLib/libsndfile/include
-LIBS += ../externalLib/libsndfile/lib/libsndfile-1.lib
+
+
+INCLUDEPATH += ../externalLib/libsndfile/include \
+     ../externalLib/SFML/include
+
+
+LIBS += ../externalLib/libsndfile/lib/libsndfile-1.lib \
+    ../externalLib/SFML/lib/libsfml-audio.a \
+    ../externalLib/SFML/lib/libsfml-system.a \
+
+
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

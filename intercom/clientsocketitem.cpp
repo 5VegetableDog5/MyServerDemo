@@ -52,18 +52,6 @@ void ClientSocketItem::readTcpData(){
     while(clientSocket->bytesAvailable() >= 2){
         if(clientSocket){
 
-            /*if(this->status == DIALSTATUS || this->status == ANSWERINGSTATUS){
-                if(targetClientItem){
-                    data = clientSocket->read(clientSocket->bytesAvailable());
-                    emit requestToSend(data,data.length());
-                    if(this->status == DIALSTATUS)
-                        qDebug()<<"Test1";
-                    else
-                        qDebug()<<"Test2";
-                    continue;
-                }
-
-            }*/
 
             if(willreceive == HEADER){
                 //读取帧头
@@ -80,10 +68,6 @@ void ClientSocketItem::readTcpData(){
                     }
                 }
 
-                //qDebug()<<"header"<<this->clientSocket->peerAddress() << " and Avaiablebytes = " <<clientSocket->bytesAvailable();
-                //for (int i = 0; i < header.size(); i++) {
-                //    qDebug().noquote() << QString::number(static_cast<quint8>(header.at(i)), 16).toUpper();
-                //}
 
                 //解析帧头
                 if(header.at(0) == 0x00){//控制指令
@@ -209,7 +193,7 @@ void ClientSocketItem::readTcpData(){
                     }
                 }else{//error
                     errorNum++;
-                    if(errorNum >=4){
+                    if(errorNum >=LEGALITYMAXCOUNT){
                         //如果错误次数大于5次则跳一个比特
                         if(clientSocket->bytesAvailable() >= 1){
                             clientSocket->read(1);
@@ -349,7 +333,6 @@ bool ClientSocketItem::sf_write(const QByteArray buffer){
     }else{
         return false;
     }
-
     return true;
 }
 
@@ -530,10 +513,10 @@ void ClientSocketItem::hangUPTheCall(){//主动挂电话
 
     //通知Server 转发至UI
     emit hangUp(this);
-        qDebug()<<"123";
+        //qDebug()<<"123";
 
     emit requestToHangup();
-        qDebug()<<"1234";
+        //qDebug()<<"1234";
     setStatus(AVAILABLE);
 
     //断开信号函数和槽函数用于两个CLient之间的通讯
@@ -547,13 +530,13 @@ void ClientSocketItem::hangUPTheCall(){//主动挂电话
     disconnect(targetClientItem,&ClientSocketItem::requestToANSWER,this,&ClientSocketItem::beginWaitANSER);
 
     setTatgetClientItem(nullptr);
-    qDebug()<<"12345";
+    //qDebug()<<"12345";
 }
 
 void ClientSocketItem::hangUPed(){//被动挂电话
     AGREEANSWERING = 0;
     setStatus(AVAILABLE);
-    qDebug()<<"hangup123";
+    //qDebug()<<"hangup123";
     setTatgetClientItem(nullptr);
 }
 
@@ -565,7 +548,21 @@ void ClientSocketItem::beginWaitANSER(){
         timer->start();
     }
 
-};
+}
+
+
+/*
+@参数：STATUS 取值：true false；
+      当STATUS取值为true时：监听当前socket
+      当STATUS取值为true时：停止监听当前socket
+*/
+void ClientSocketItem::setMonitor(bool STATUS){
+    if(STATUS){
+        this->monitor = true;
+    }else{
+        this->monitor = false;
+    }
+}
 
 void ClientSocketItem::onLine(){
     clientSocket->read(1);
@@ -719,6 +716,11 @@ void ClientSocketItem::sendData(const QByteArray data,int length){
 
         this->clientSocket->write(data,length);
     }
+
+#if MONITOR
+
+#endif
+
 #if RECODE
     //录音操作（这里录的是接听方的声音）
     if(this->status == DIALSTATUS && !sf_write(data)){

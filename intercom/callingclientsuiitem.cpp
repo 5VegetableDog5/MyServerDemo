@@ -9,6 +9,12 @@ CallingClientsUIItem::CallingClientsUIItem(QWidget *parent,ClientSocketItem *dia
     this->dialer = dialer;
     this->receiver = receiver;
 
+    //UI初始化
+#if MONITOR
+    this->ui->button_Play->setText("监听");
+    this->ui->button_Play->setStyleSheet("background-color: green;");
+#endif
+
     callingTimeInit();//拨号时长Timer初始化
     timerInit();//拨号定时器初始化
 
@@ -17,6 +23,10 @@ CallingClientsUIItem::CallingClientsUIItem(QWidget *parent,ClientSocketItem *dia
 
     connect(ui->button_Stop,&QPushButton::clicked,dialer,&ClientSocketItem::hangUPTheCall);
     connect(receiver,&ClientSocketItem::callingStatusChange,this,&CallingClientsUIItem::callingStatusChange);
+
+#if MONITOR
+    connect(ui->button_Play,&QPushButton::clicked,this,&CallingClientsUIItem::invertMonitor);
+#endif
 }
 
 ClientSocketItem* CallingClientsUIItem::getDialer(){
@@ -69,6 +79,38 @@ void CallingClientsUIItem::callingStatusChange(int status){
         case 2:ui->label_CallingStatus->setText("已接通");timerStart();break;
         default:ui->label_CallingStatus->setText("未知错误!");
     }
+}
+
+/*
+*@说明：根据STATUS来设置当前通话是否被监听
+*/
+void CallingClientsUIItem::setMonitor(bool STATUS){
+
+    closeMONITOR();
+    this->monitor = STATUS;
+    if(STATUS){
+        this->getDialer()->setMonitor(STATUS);
+        this->getReceiver()->setMonitor(STATUS);
+        this->ui->button_Play->setStyleSheet("background-color: red;");
+        printfLog(this->getDialer()->getSocket()->peerName()+ "开启监听\n");
+    }
+
+}
+
+/*
+*@说明：反转当前监听状态
+*/
+void CallingClientsUIItem::invertMonitor(){
+    setMonitor(!this->monitor);
+}
+
+/*
+*@说明：关闭该通话的监听功能
+*/
+void CallingClientsUIItem::closeMonitor(){
+    this->getDialer()->setMonitor(false);
+    this->getReceiver()->setMonitor(false);
+    this->ui->button_Play->setStyleSheet("background-color: green;");
 }
 
 CallingClientsUIItem::~CallingClientsUIItem()

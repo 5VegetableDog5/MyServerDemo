@@ -1,8 +1,18 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+
+#if DEBUG
 //日志信息窗口（全局变量）
 QTextBrowser *logBrowser;
+#endif
+
+#if MONITOR
+
+#endif
+
+extern QList<CallingClientsUIItem*> uiCallingItems;
+extern QSqlDatabase db;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -10,6 +20,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     labelInit();
+
 
     /* 注意！该初始化不能在Main中进行，否则会出现未知问题导致程序无法正常运行！！！ */
     this->server = new Server();
@@ -27,10 +38,21 @@ MainWindow::MainWindow(QWidget *parent)
     this->onlineVBoxLayout = new QVBoxLayout(onlineScrollAreaContent);//创建垂直布局
     this->callingVBoxLayout = new QVBoxLayout(callingScrollAreaContent);
 
+    //初始化connect函数
+    InitConnect();
+
+    //数据库初始化
+    ODBC *odbc = new ODBC(HOSTNAME,PORT,DATABASENAME,USERNAME,PASSWORD);
+
 #if DEBUG
         printfLog("Server start!");
 #endif
 
+
+}
+
+//初始化connect
+void MainWindow::InitConnect(){
     connect(server,&Server::newOnlineClient,this,&MainWindow::addNewOnlineClient);
     connect(server,&Server::upgradeClientStatus,this,&MainWindow::upgradeOnlineClient);
     connect(server,&Server::offLineSingal,this,&MainWindow::offLineClient);
@@ -40,15 +62,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(ui->pushButton_Online,&QPushButton::clicked,this,&MainWindow::showOnlineClients);
     connect(ui->pushButton_Calling,&QPushButton::clicked,this,&MainWindow::showCallingClients);
-}
 
-MainWindow::~MainWindow()
-{
-    server->deleteLater();
-    onlineVBoxLayout->deleteLater();
-    callingVBoxLayout->deleteLater();
-
-    delete ui;
+    connect(ui->pushButton_History,&QPushButton::clicked,this,&MainWindow::showHistoryUI);
 }
 
 void MainWindow::labelInit(){
@@ -57,9 +72,14 @@ void MainWindow::labelInit(){
     ui->label_dialIP->setStyleSheet("border: 1px solid black;");
     ui->label_receiverIP->setStyleSheet("border: 1px solid black;");
     ui->label_CallingStatus->setStyleSheet("border: 1px solid black;");
-    ui->label_3->setStyleSheet("border: 1px solid black;");
-    ui->label_4->setStyleSheet("border: 1px solid black;");
+    ui->label_Play->setStyleSheet("border: 1px solid black;");
+    ui->label_Over->setStyleSheet("border: 1px solid black;");
     ui->label_CallingTime->setStyleSheet("border: 1px solid black;");
+
+#if MONITOR
+    ui->label_Play->setText("监听");
+#endif
+
 }
 
 void MainWindow::addNewOnlineClient(const QString ipAddr,const short status){
@@ -164,7 +184,7 @@ void MainWindow::deleteCalling(ClientSocketItem *dialer){
 
             CallingClientsUIItem *item = uiCallingItems[i];//暂时保存该item，等会要释放掉它
             uiCallingItems.removeAt(i);//在线用户表中删除该用户
-            qDebug()<<"789789";
+
             item->deleteLater();//释放内存
             callingVBoxLayout->update();
             ui->label_Calling->setText("通话概况 "+QString::number(uiCallingItems.count()));
@@ -185,5 +205,58 @@ void MainWindow::showCallingClients(){
     pageChanged(1);
 }
 
+void MainWindow::InitMONITOR(){
+    // 创建一个音频流
+    sf::SoundBuffer soundBuffer;
+    sf::Sound sound;
 
+    // 从QByteArray中获取音频数据
+    QByteArray byteArray; // 假设你有一个 QByteArray 对象
+    const qint16* data = reinterpret_cast<const qint16*>(byteArray.constData());
+    std::size_t dataSize = byteArray.size() / sizeof(qint16);
+
+    // 从文件中加载音频数据
+    if (!soundBuffer.loadFromSamples(data, dataSize ,CHANNELS,SAMPLERATE)) {
+        // 将音频数据设置到音频对象中
+        sound.setBuffer(soundBuffer);
+
+        // 播放音频
+        sound.play();
+
+        // 等待音频播放完毕
+        while (sound.getStatus() == sf::Sound::Playing) {}
+    }
+
+}
+
+void MainWindow::showHistoryUI(){
+
+    static History *history;
+    if(!historyShow){
+        history = new History();
+        history->setWindowTitle("历史记录");
+
+        history->show();
+        historyShow = true;
+
+        connect(history, &History::aboutToClose, this,&MainWindow::setHistoryFlagClose);
+    }else{
+        history->raise();
+    }
+
+    //qDebug()<<"789789";
+}
+
+void MainWindow::setHistoryFlagClose(){
+    historyShow = false;
+}
+
+MainWindow::~MainWindow()
+{
+    server->deleteLater();
+    onlineVBoxLayout->deleteLater();
+    callingVBoxLayout->deleteLater();
+
+    delete ui;
+}
 

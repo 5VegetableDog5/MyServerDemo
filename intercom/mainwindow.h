@@ -13,12 +13,17 @@
 #include "clientsocketitem.h"
 #include "server.h"
 #include "config.h"
+#include "history.h"
+#include "odbc.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
+#if DEBUG
 void printfLog(QString string);
+#endif
+
 
 class MainWindow : public QMainWindow
 {
@@ -40,9 +45,11 @@ public:
     void addNewCalling(ClientSocketItem *dialer,ClientSocketItem *receiver);
     void deleteCalling(ClientSocketItem *dialer);
 
+    //按钮槽事件
     void pageChanged(int page);
     void showOnlineClients();
     void showCallingClients();
+
 
 private:
     Ui::MainWindow *ui;
@@ -52,7 +59,17 @@ private:
     QVBoxLayout *callingVBoxLayout;
 
     QList<OnlineClientUIItem*> uiOnlineClient;
-    QList<CallingClientsUIItem*> uiCallingItems;
+
+
+
+    void InitMONITOR();
+    void InitConnect();
+
+    //历史记录窗口相关
+    bool historyShow = false;
+
+    void showHistoryUI();
+    void setHistoryFlagClose();
 
 };
 #endif // MAINWINDOW_H

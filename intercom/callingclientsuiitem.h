@@ -18,8 +18,13 @@ public:
     explicit CallingClientsUIItem(QWidget *parent = nullptr,ClientSocketItem *dialer=nullptr,ClientSocketItem *receiver=nullptr);
     ~CallingClientsUIItem();
 
+
     ClientSocketItem* getDialer();
     ClientSocketItem* getReceiver();
+
+#if MONITOR
+    void closeMonitor();
+#endif
 
 private:
     ClientSocketItem *dialer;
@@ -37,6 +42,15 @@ private:
     void timerTimeOut();
 
     void callingStatusChange(int status);
+
+#if MONITOR
+    //监听器 false：关闭； true：打开；
+    bool monitor = false;
+
+    void setMonitor(bool STATUS);
+    void invertMonitor();
+#endif
+
 };
 
 #endif // CALLINGCLIENTSUIITEM_H
