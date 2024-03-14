@@ -29,4 +29,5 @@ ODBC::ODBC(QString hostName,short port,QString databaseName,QString username,QSt
 #endif
     }
 
+
 }
