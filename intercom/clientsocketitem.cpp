@@ -1,4 +1,5 @@
 #include "clientsocketitem.h"
+#include "server.h"
 
 QByteArray* ClientSocketItem::dataFrameHeader = nullptr;
 QByteArray* ClientSocketItem::ACKFrame = nullptr;
@@ -131,7 +132,7 @@ void ClientSocketItem::readTcpData(){
 
 
                             qDebug()<<getSocket()->peerAddress().toString().replace("::ffff:","")<<"hangup!";
-                        }else{
+                        }else{//挂断错误
 #if DEBUG
                             printfLog(getSocket()->peerAddress().toString().replace("::ffff:","")+"hang up error! status error!");
 #endif
@@ -152,6 +153,11 @@ void ClientSocketItem::readTcpData(){
 #if DEBUG
                             printfLog(clientSocket->peerAddress().toString()+"同意接听");
 #endif
+
+                            //记录开始时间
+                            beginTime = QDateTime::currentDateTime();
+                            targetClientItem->setBeginTime(beginTime);//同步开始通话时间
+
                             AGREEANSWERING = 2;
                             emit callingStatusChange(2);//通知UI同意接听
                             rebackACKFrame(3);
@@ -248,9 +254,11 @@ void ClientSocketItem::readTcpData(){
                             requestSendDataFrameHeader();
                             //targetClientItem->getSocket()->write(data,willReceiveLength);
                             emit requestToSend(data,data.length());
+#if RECODE
                             if(!sf_write(data)){
                                 qDebug()<<"写入失败";
                             }
+#endif
                         }
                     }else{
                         qDebug()<<"program error! <<";
@@ -320,6 +328,7 @@ bool ClientSocketItem::examineFrameHeader(){
 
 }
 
+#if RECODE
 //将buffer内的数据写入到wav文件中
 bool ClientSocketItem::sf_write(const QByteArray buffer){
     if(file){
@@ -335,6 +344,7 @@ bool ClientSocketItem::sf_write(const QByteArray buffer){
     }
     return true;
 }
+#endif
 
 bool ClientSocketItem::setTatgetClientItem(const QString& IPAddress_port){
     qDebug()<<"set target Address "<<IPAddress_port;
@@ -500,9 +510,24 @@ void ClientSocketItem::cleanNeedlessZero(){
 
 }
 
-void ClientSocketItem::hangUPTheCall(){//主动挂电话
+//主动挂电话
+void ClientSocketItem::hangUPTheCall(){
 
     AGREEANSWERING = 0;
+
+    //保存历史记录
+    QString dialerIP;
+    QString answerIP;
+
+    if(this->status == DIALSTATUS){
+        dialerIP = getSocket()->peerAddress().toString().replace("::ffff:","");
+        answerIP = targetClientItem->getSocket()->peerAddress().toString().replace("::ffff:","");
+    }else{
+        dialerIP = targetClientItem->getSocket()->peerAddress().toString().replace("::ffff:","");
+        answerIP = getSocket()->peerAddress().toString().replace("::ffff:","");
+    }
+
+    emit requestSaveHistory(dialerIP,answerIP,(int)beginTime.secsTo(QDateTime::currentDateTime()),beginTime);
 
     //返回应答信号
     //if(clientSocket->state()  != QAbstractSocket::UnconnectedState)
@@ -540,6 +565,9 @@ void ClientSocketItem::hangUPed(){//被动挂电话
     setTatgetClientItem(nullptr);
 }
 
+/*
+*开始等待对方应答
+*/
 void ClientSocketItem::beginWaitANSER(){
     if(AGREEANSWERING == 0){
         emit callingStatusChange(1);
@@ -548,6 +576,14 @@ void ClientSocketItem::beginWaitANSER(){
         timer->start();
     }
 
+}
+
+void ClientSocketItem::setBeginTime(const QDateTime& time){
+    this->beginTime  = time;
+}
+
+QDateTime ClientSocketItem::getBeginTime(){
+    return beginTime;
 }
 
 
@@ -666,6 +702,9 @@ bool ClientSocketItem::handleIPDATA(){
 void ClientSocketItem::handleCloseConnection(){
     if(clientSocket){
         if(!clientSocket->peerAddress().toString().isEmpty()){
+#if DEBUG
+            printfLog(clientSocket->peerAddress().toString().replace("::ffff:","")+" 下线 ");
+#endif
             qDebug()<<clientSocket->peerAddress()<<clientSocket->peerPort()<<"close ...";
             //通知UI界面下线
             emit offLineSingal(clientSocket->peerAddress().toString());

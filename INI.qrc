@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/database">
+        <file>config.ini</file>
+    </qresource>
+</RCC>

@@ -8,8 +8,9 @@
 #include <QDir>
 
 
-#include <clientsocketitem.h>
+#include "clientsocketitem.h"
 #include "config.h"
+#include "odbc.h"
 
 class ClientSocketItem;
 
@@ -32,6 +33,7 @@ public:
     void emitDeleteCalling(ClientSocketItem *dialer);
 
 
+
 public: signals:
     void newOnlineClient(const QString ipAddr,const short status);
     void upgradeClientStatus(const QString ipAddr,const short newStatus);
@@ -46,6 +48,8 @@ private:
     QTcpServer *server = NULL;
     QTcpSocket *clientSocket = NULL;
     static QList<ClientSocketItem*> onlineClients;
+
+    ODBC *odbc;
 
 private slots:
     void readTcpData();

@@ -60,8 +60,6 @@ private:
 
     QList<OnlineClientUIItem*> uiOnlineClient;
 
-
-
     void InitMONITOR();
     void InitConnect();
 

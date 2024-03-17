@@ -19,9 +19,9 @@
   <widget class="QTableView" name="tableView_history">
    <property name="geometry">
     <rect>
-     <x>50</x>
+     <x>30</x>
      <y>110</y>
-     <width>481</width>
+     <width>521</width>
      <height>411</height>
     </rect>
    </property>
@@ -47,23 +47,122 @@
      <widget class="QComboBox" name="comboBox">
       <item>
        <property name="text">
-        <string>时间</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
         <string>IP</string>
        </property>
       </item>
       <item>
        <property name="text">
-        <string>通话时长</string>
+        <string>通话时长（s）</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>时间</string>
        </property>
       </item>
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="lineEdit_search"/>
+     <widget class="QStackedWidget" name="stackedWidget">
+      <property name="currentIndex">
+       <number>2</number>
+      </property>
+      <widget class="QWidget" name="page_1">
+       <widget class="QLineEdit" name="lineEdit_search">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>20</y>
+          <width>355</width>
+          <height>25</height>
+         </rect>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="page_2">
+       <widget class="QLineEdit" name="lineEdit_small">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>20</y>
+          <width>141</width>
+          <height>25</height>
+         </rect>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_2">
+        <property name="geometry">
+         <rect>
+          <x>160</x>
+          <y>20</y>
+          <width>16</width>
+          <height>21</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:11pt; font-weight:700;&quot;&gt;~&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+       <widget class="QLineEdit" name="lineEdit_big">
+        <property name="geometry">
+         <rect>
+          <x>182</x>
+          <y>20</y>
+          <width>151</width>
+          <height>25</height>
+         </rect>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_3">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>0</y>
+          <width>141</width>
+          <height>19</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:8pt; color:#ff0000;&quot;&gt;输入-1表示无穷大&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="page_3">
+       <widget class="QDateTimeEdit" name="dateTimeEdit_small">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>20</y>
+          <width>131</width>
+          <height>25</height>
+         </rect>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_4">
+        <property name="geometry">
+         <rect>
+          <x>150</x>
+          <y>20</y>
+          <width>16</width>
+          <height>21</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:11pt; font-weight:700;&quot;&gt;~&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+       <widget class="QDateTimeEdit" name="dateTimeEdit_big">
+        <property name="geometry">
+         <rect>
+          <x>170</x>
+          <y>20</y>
+          <width>131</width>
+          <height>25</height>
+         </rect>
+        </property>
+       </widget>
+      </widget>
+     </widget>
     </item>
     <item>
      <widget class="QPushButton" name="pushButton_search">
@@ -77,14 +176,27 @@
   <widget class="QPushButton" name="pushButton_delete">
    <property name="geometry">
     <rect>
-     <x>550</x>
-     <y>180</y>
+     <x>570</x>
+     <y>190</y>
      <width>93</width>
      <height>28</height>
     </rect>
    </property>
    <property name="text">
     <string>删除</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_showAll">
+   <property name="geometry">
+    <rect>
+     <x>570</x>
+     <y>140</y>
+     <width>93</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>显示全部</string>
    </property>
   </widget>
  </widget>

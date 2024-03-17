@@ -16,12 +16,15 @@
 #include <QDateTime>
 #include <QTimer>
 
-
-#include <server.h>
+#if RECODE
 #include "sndfile.h"
-#include "config.h"
+#endif
 
-class Server;
+#include "config.h"
+#include "history.h"
+#include "odbc.h"
+
+
 
 class ClientSocketItem : public QObject
 {
@@ -36,6 +39,10 @@ public:
     void hangUPTheCall();
     void hangUPed();
     void beginWaitANSER();
+
+    //开始时间相关函数
+    void setBeginTime(const QDateTime& time);
+    QDateTime getBeginTime();
 
 #if MONITOR
     void setMonitor(bool STATUS);
@@ -58,13 +65,26 @@ public: signals:
 
     void call(ClientSocketItem *dialer,ClientSocketItem *receiver);
     void hangUp(ClientSocketItem *dialer);
+
+    //历史记录相关信号
+    void requestSaveHistory(QString dialer,QString answer,int callDuration,QDateTime beginTime);
 protected:
 
 private:
+    //合法性
     bool legality;
+
+    //合法性验证次数
     short legalityCount;
+
+    //通话状态
     short status;
+
+    //登录状态
     bool loginedFlag = false;
+
+    //开始通话时间
+    QDateTime beginTime;
 
 #if MONITOR
     //监听器 false：关闭； true：打开；
@@ -80,12 +100,15 @@ private:
     QByteArray data;//数据
     QByteArray header;//帧头
 
+#if RECODE
     SF_INFO fileInfo;
     SNDFILE* file;//录音文件
+#endif
 
     QTcpSocket* clientSocket;
     ClientSocketItem* targetClientItem;
 
+    //定时器
     QTimer *timer = new QTimer(this);
 
     //硬件控制帧

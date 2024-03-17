@@ -82,7 +82,7 @@ void CallingClientsUIItem::callingStatusChange(int status){
 }
 
 /*
-*@说明：根据STATUS来设置当前通话是否被监听
+*@说明：根据 @STATUS 来设置当前通话是否被监听
 */
 void CallingClientsUIItem::setMonitor(bool STATUS){
 
@@ -92,7 +92,9 @@ void CallingClientsUIItem::setMonitor(bool STATUS){
         this->getDialer()->setMonitor(STATUS);
         this->getReceiver()->setMonitor(STATUS);
         this->ui->button_Play->setStyleSheet("background-color: red;");
+#if DEBUG
         printfLog(this->getDialer()->getSocket()->peerName()+ "开启监听\n");
+#endif
     }
 
 }

@@ -4,13 +4,20 @@
 #include <QString>
 #include <QSqlDatabase>
 #include <QDebug>
+#include <QSettings>
+#include <QObject>
 
 #include "config.h"
 
-class ODBC
+class ODBC :public QObject
 {
+    Q_OBJECT
 public:
-    ODBC(QString hostName,short PORT,QString databaseName,QString username,QString password);
+    ODBC();
+
+public slots:
+    //保存历史记录相关函数
+    void saveNewHistory(QString dialer,QString answer,int callDuration,QDateTime beginTime);
 };
 
 #endif // ODBC_H

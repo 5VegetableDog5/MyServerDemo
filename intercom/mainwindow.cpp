@@ -24,7 +24,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     /* 注意！该初始化不能在Main中进行，否则会出现未知问题导致程序无法正常运行！！！ */
     this->server = new Server();
+#if DEBUG
     logBrowser = ui->logBrowser;
+#endif
 
     QWidget  *onlineScrollAreaContent = new QWidget ();
     QWidget  *callingScrollAreaContent = new QWidget ();
@@ -41,14 +43,9 @@ MainWindow::MainWindow(QWidget *parent)
     //初始化connect函数
     InitConnect();
 
-    //数据库初始化
-    ODBC *odbc = new ODBC(HOSTNAME,PORT,DATABASENAME,USERNAME,PASSWORD);
-
 #if DEBUG
         printfLog("Server start!");
 #endif
-
-
 }
 
 //初始化connect
@@ -66,6 +63,9 @@ void MainWindow::InitConnect(){
     connect(ui->pushButton_History,&QPushButton::clicked,this,&MainWindow::showHistoryUI);
 }
 
+/*
+*文本框初始化函数
+*/
 void MainWindow::labelInit(){
     ui->label_ip->setStyleSheet("border: 1px solid black;");
     ui->label_status->setStyleSheet("border: 1px solid black;");

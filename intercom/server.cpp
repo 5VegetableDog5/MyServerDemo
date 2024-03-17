@@ -2,12 +2,16 @@
 
 QList<ClientSocketItem*> Server::onlineClients;
 
+extern QSqlDatabase db;
+
 Server::Server()
 {
+#if RECODE
     QDir dir;
-    if (!dir.exists("data")) { // 检查文件夹是否已存在
+    if (!dir.exists("data")) { // 检查音频存储文件夹是否已存在
         creatDir("data");
     }
+#endif
 
     server = new QTcpServer(this);
 
@@ -23,6 +27,10 @@ Server::Server()
 
     //绑定槽函数
     connect(server, &QTcpServer::newConnection, this, &Server::handleNewConnection);
+
+    //数据库初始化
+    odbc = new ODBC();
+
 }
 
 void Server::addOnlineClient(ClientSocketItem* ClientSocketItem){
@@ -76,7 +84,6 @@ void Server::emitNewClientSingals(const QString ipAddr,const short status){
 
 void Server::emitUpgradeClientStatus(const QString ipAddr,const short newStatus){
     emit upgradeClientStatus(ipAddr,newStatus);
-    //qDebug()<<"upgreade";
 }
 
 void Server::emitOffLineSingal(const QString ipAddr){
@@ -104,6 +111,8 @@ void Server::handleNewConnection()
     connect(cst,&ClientSocketItem::call,this,&Server::newCalling);
     connect(cst,&ClientSocketItem::hangUp,this,&Server::emitDeleteCalling);
 
+    connect(cst,&ClientSocketItem::requestSaveHistory,odbc,&ODBC::saveNewHistory);
+
 }
 
 void Server::searchSameIP(ClientSocketItem *client){
@@ -118,7 +127,7 @@ void Server::searchSameIP(ClientSocketItem *client){
 }
 
 bool Server::creatDir(QString path){
-    QString folderPath = "C:/MyFolder"; // 设置文件夹路径
+    //QString folderPath = "C:/MyFolder"; // 设置文件夹路径
 
     QDir dir;
     if (!dir.exists(path)) { // 检查文件夹是否已存在

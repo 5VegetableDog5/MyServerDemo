@@ -4,7 +4,16 @@
 #include <QString>
 #include <QTextBrowser>
 #include <QTextCursor>
+#include <QMessageBox>
+#include <QSqlQuery>
+
+//时间类
+#include <QDateTimeEdit>
+
+//数据库操作头文件
 #include <QSqlDatabase>
+#include <QSqlQueryModel>
+#include <QSqlError>
 
 //外部库
 #include <SFML/Audio.hpp>
@@ -29,16 +38,6 @@ const int DATALENGTH = 1024;//数据帧长度
 const static unsigned int SAMPLERATE = 6000;
 // 声道数
 const static unsigned short CHANNELS = 2;
-
-
-/*
- *数据库信息
-*/
-const QString HOSTNAME = "127.0.0.1";
-const short PORT = 3306;
-const QString DATABASENAME = "mysql-ODBC-intercom";
-const QString USERNAME = "root";
-const QString PASSWORD = "123456";
 
 #if DEBUG
     //全局方法，用于打印日志信息
