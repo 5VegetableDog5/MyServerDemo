@@ -11,6 +11,9 @@ Server::Server()
     if (!dir.exists("data")) { // 检查音频存储文件夹是否已存在
         creatDir("data");
     }
+    if(!dir.exists("data/temp")){
+        creatDir("data/temp");
+    }
 #endif
 
     server = new QTcpServer(this);

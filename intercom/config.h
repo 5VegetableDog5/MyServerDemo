@@ -25,7 +25,7 @@
 #define DEBUG 1
 
 //1 开启录音 ，  0关闭录音
-#define RECODE 0
+#define RECODE 1
 
 //监听功能 1：开启 0：关闭
 #define MONITOR 1

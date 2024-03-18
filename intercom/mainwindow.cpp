@@ -205,30 +205,6 @@ void MainWindow::showCallingClients(){
     pageChanged(1);
 }
 
-void MainWindow::InitMONITOR(){
-    // 创建一个音频流
-    sf::SoundBuffer soundBuffer;
-    sf::Sound sound;
-
-    // 从QByteArray中获取音频数据
-    QByteArray byteArray; // 假设你有一个 QByteArray 对象
-    const qint16* data = reinterpret_cast<const qint16*>(byteArray.constData());
-    std::size_t dataSize = byteArray.size() / sizeof(qint16);
-
-    // 从文件中加载音频数据
-    if (!soundBuffer.loadFromSamples(data, dataSize ,CHANNELS,SAMPLERATE)) {
-        // 将音频数据设置到音频对象中
-        sound.setBuffer(soundBuffer);
-
-        // 播放音频
-        sound.play();
-
-        // 等待音频播放完毕
-        while (sound.getStatus() == sf::Sound::Playing) {}
-    }
-
-}
-
 void MainWindow::showHistoryUI(){
 
     static History *history;

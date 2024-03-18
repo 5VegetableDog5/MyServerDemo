@@ -157,7 +157,9 @@ void ClientSocketItem::readTcpData(){
                             //记录开始时间
                             beginTime = QDateTime::currentDateTime();
                             targetClientItem->setBeginTime(beginTime);//同步开始通话时间
-
+#if RECODE
+                            beginRecording();//开始录音
+#endif
                             AGREEANSWERING = 2;
                             emit callingStatusChange(2);//通知UI同意接听
                             rebackACKFrame(3);
@@ -220,11 +222,19 @@ void ClientSocketItem::readTcpData(){
                     if(targetClientItem){
                         //qDebug() << "音频数据";
                         if(status == DIALSTATUS || (status == ANSWERINGSTATUS && AGREEANSWERING == 2)){//确保是通话状态
+                            //发送音频数据至对方
                             requestSendDataFrameHeader();
                             emit requestToSend(data,data.length());
+#if MONITOR
+                            //如果该通话被监听
+                            if(monitor){
+                                playSound(data,CHANNELS,SAMPLERATE);
+                            }
+#endif
+
 #if RECODE
                             //录音操作（这里录的是拨号方的声音）
-                            if(this->status == DIALSTATUS && !sf_write(data)){
+                            if(this->status == DIALSTATUS && !sf_write(data,file_dial)){
                                 qDebug()<<"写入失败";
                             }
 #endif
@@ -254,11 +264,11 @@ void ClientSocketItem::readTcpData(){
                             requestSendDataFrameHeader();
                             //targetClientItem->getSocket()->write(data,willReceiveLength);
                             emit requestToSend(data,data.length());
-#if RECODE
+/*#if RECODE
                             if(!sf_write(data)){
                                 qDebug()<<"写入失败";
                             }
-#endif
+#endif*/
                         }
                     }else{
                         qDebug()<<"program error! <<";
@@ -277,6 +287,40 @@ void ClientSocketItem::readTcpData(){
         }
     }
 
+}
+
+/*
+ * @playSound说明：播放soundDate二进制音频数据
+ * 参数：@soundData：二进制音频数据
+ *      @channels：声道数
+ *      @samlerate：波特率
+ * 返回值：无
+ *
+*/
+void ClientSocketItem::playSound(QByteArray soundData,unsigned int const channels,unsigned int const samplerate){
+
+    if(soundData.size() == 0){
+        qDebug()<<"音频播放失败！soundData 为 0 ！";
+        return;
+    }
+    // 从QByteArray中获取音频数据
+    const qint16* data = reinterpret_cast<const qint16*>(soundData.constData());
+    std::size_t dataSize = soundData.size() / sizeof(qint16);
+
+
+    // 从文件中加载音频数据
+    if (!soundBuffer.loadFromSamples(data, dataSize ,channels,samplerate)) {
+        // 将音频数据设置到音频对象中
+        sound.setBuffer(soundBuffer);
+
+        // 播放音频
+        sound.play();
+
+        // 等待音频播放完毕
+        //while (sound.getStatus() == sf::Sound::Playing) {}
+    }else{
+        qDebug()<<"ClientSocketItem::playSound :加载音频数据失败！";
+    }
 }
 
 bool ClientSocketItem::adjustFrameHeader(){
@@ -330,7 +374,7 @@ bool ClientSocketItem::examineFrameHeader(){
 
 #if RECODE
 //将buffer内的数据写入到wav文件中
-bool ClientSocketItem::sf_write(const QByteArray buffer){
+bool ClientSocketItem::sf_write(const QByteArray buffer, SNDFILE* file){
     if(file){
         // 写入音频数据
         sf_count_t numFramesWritten = sf_write_raw(file, buffer.constData(), buffer.size());
@@ -342,6 +386,94 @@ bool ClientSocketItem::sf_write(const QByteArray buffer){
     }else{
         return false;
     }
+    return true;
+}
+
+/*
+ * @mergeAudio
+ * 说明:合并两段wav音频，需要保证两段音频的格式是相同的如波特率等
+ * 参数：@input1:第一个wav文件的文件路径
+ *      @input2:第二个wav文件的文件路径
+ *      @output:输出文件的文件路径
+ * 返回值:无
+*/
+void ClientSocketItem::mergeAudio(const QString& input1, const QString& input2, const QString& output){
+    SNDFILE* infile1 = nullptr;
+    SNDFILE* infile2 = nullptr;
+    SF_INFO info1;
+    SF_INFO info2;
+
+    // 打开第一段音频文件
+    infile1 = sf_open(input1.toStdString().c_str(), SFM_READ, &info1);
+    if (!infile1) {
+        qDebug() << "Error opening file" << input1;
+        return;
+    }
+
+    // 打开第二段音频文件
+    infile2 = sf_open(input2.toStdString().c_str(), SFM_READ, &info2);
+    if (!infile2) {
+        qDebug() << "Error opening file" << input2;
+        sf_close(infile1);
+        return;
+    }
+
+    // 检查音频格式是否相同
+    if (info1.channels != info2.channels || info1.samplerate != info2.samplerate) {
+        qDebug() << "Error: Audio formats do not match";
+        sf_close(infile1);
+        sf_close(infile2);
+        return;
+    }
+
+    // 创建输出音频文件
+    SF_INFO outinfo = info1;
+    SNDFILE* outfile = sf_open(output.toStdString().c_str(), SFM_WRITE, &outinfo);
+    if (!outfile) {
+        qDebug() << "Error creating output file" << output;
+        sf_close(infile1);
+        sf_close(infile2);
+        return;
+    }
+
+    // 读取并合并音频数据
+    const int BUFFER_SIZE = 1024;
+    QVector<short> buffer1(BUFFER_SIZE * info1.channels);
+    QVector<short> buffer2(BUFFER_SIZE * info2.channels);
+    int framesRead1 = 0;
+    int framesRead2 = 0;
+
+    while ((framesRead1 = sf_read_short(infile1, buffer1.data(), BUFFER_SIZE)) > 0 &&
+           (framesRead2 = sf_read_short(infile2, buffer2.data(), BUFFER_SIZE)) > 0) {
+        // 确保读取的帧数相同
+        int framesToWrite = qMin(framesRead1, framesRead2);
+
+        // 合并音频数据并写入输出文件
+        sf_write_short(outfile, buffer1.data(), framesToWrite * info1.channels);
+        sf_write_short(outfile, buffer2.data(), framesToWrite * info2.channels);
+    }
+
+    // 关闭文件
+    sf_close(infile1);
+    sf_close(infile2);
+    sf_close(outfile);
+
+    qDebug() << "Audio files merged successfully";
+}
+
+bool ClientSocketItem::deleteFile(const QString& filePath){
+    QFile file(filePath);
+    if (!file.exists()) {
+        qDebug() << "File" << filePath << "does not exist. deleteFile";
+        return false;
+    }
+
+    if (!file.remove()) {
+        qDebug() << "Error deleting file " << filePath;
+        return false;
+    }
+
+    qDebug() << "File" << filePath << "deleted successfully.";
     return true;
 }
 #endif
@@ -369,18 +501,29 @@ bool ClientSocketItem::setTatgetClientItem(ClientSocketItem* targetItem){
 */
 void ClientSocketItem::setStatus(short status){
 #if RECODE
+    //如果从接听状态改变到空闲状态了，说明通话结束了
+    if(this->status == ANSWERINGSTATUS && status == AVAILABLE){
 
-    if(this->status == DIALSTATUS && status == AVAILABLE){
         // 关闭文件
-        if(file){
-            sf_close(file);
-            file = nullptr;
+        if(file_dial && file_answer){
+            sf_close(file_dial);
+            sf_close(file_answer);
+            QString outputFilePath = "data/"+getSocket()->peerAddress().toString().replace("::ffff:", "")+
+                "_to_"+targetClientItem->getSocket()->peerAddress().toString().replace("::ffff:", "")+
+                 beginTime.toString("yyyy-MM-dd_hh-mm-ss")+".wav";
+            mergeAudio(filePath_answer, filePath_dial,outputFilePath);
+            //删除临时文件
+            deleteFile(filePath_answer);
+            deleteFile(filePath_dial);
+            file_dial = nullptr;
+            file_answer = nullptr;
+        }else{
+            qDebug()<<"dile_dial or file_answer is null"<<file_answer<<" "<<file_dial;
         }
-
     }
 #endif
     this->status = status;
-    emit statusChanged(this->clientSocket->peerAddress().toString(),status);
+    emit statusChanged(this->clientSocket->peerAddress().toString().replace("::ffff:", ""),status);
 }
 
 short ClientSocketItem::getStatus(){
@@ -420,9 +563,7 @@ bool ClientSocketItem::dial(const QString& targetIP){
             emit requestToSend(*callFrame,callFrame->count());
 
         loginedFlag = true;//说明成功注册了
-#if RECODE
-        beginRecording();//开始录音
-#endif
+
         return true;
 
     }else{
@@ -488,6 +629,7 @@ void ClientSocketItem::requestSendDataFrameHeader(){
     emit requestToSend(*dataFrameHeader,dataFrameHeader->count());
 }
 
+//删除不必要的0
 void ClientSocketItem::cleanNeedlessZero(){
     if(clientSocket){
         do{
@@ -610,14 +752,14 @@ void ClientSocketItem::onLine(){
     //将当前用户添加至 在线用户组
     Server::addOnlineClient(this);
     Server::showOnlineClients();
-    emit onlineClientSingal(this->clientSocket->peerAddress().toString(),this->status);
+    emit onlineClientSingal(this->clientSocket->peerAddress().toString().replace("::ffff:", ""),this->status);
 }
 
 void ClientSocketItem::offLine(){
     hangUPTheCall();
     if(this->status != AVAILABLE)
         emit hangUp(this);
-    emit offLineSingal(clientSocket->peerAddress().toString());
+    emit offLineSingal(clientSocket->peerAddress().toString().replace("::ffff:", ""));
 
     this->legality = false;
 
@@ -625,41 +767,41 @@ void ClientSocketItem::offLine(){
 }
 
 #if RECODE
-
 bool ClientSocketItem::beginRecording(){
     //初始化录音文件
-    fileInfo.channels = 2;             // 声道数
+    fileInfo.channels = CHANNELS;             // 声道数
     fileInfo.samplerate = SAMPLERATE;       // 采样率
     fileInfo.format = SF_FORMAT_WAV | SF_FORMAT_PCM_16;  // WAV文件格式 16位色深
 
-
-    QDateTime dateTime= QDateTime::currentDateTime();//获取系统当前的时间
-    QString timeStr = dateTime.toString("yyyy-MM-dd_hh-mm-ss");//格式化时间
-
-    QString filePath;
+    QString timeStr = beginTime.toString("yyyy-MM-dd_hh-mm-ss");//格式化时间
 
     if(targetClientItem){
-        filePath = "data/"+this->clientSocket->peerAddress().toString()+"_to_"+targetClientItem->getSocket()->peerAddress().toString().replace("::ffff:","")+" "+timeStr+".wav";
-        //filePath = timeStr+".wav";
+        filePath_dial = "data/temp/"+this->clientSocket->peerAddress().toString().replace("::ffff:", "")+"_"+timeStr+".wav";
+        filePath_answer = "data/temp/"+this->targetClientItem->getSocket()->peerAddress().toString().replace("::ffff:", "")+"_"+timeStr+".wav";
     }else{
         return false;
     }
-    filePath.replace("::ffff:", "");
 
-    QByteArray filePathBytes = filePath.toUtf8();
-    const char* filePathStr = filePathBytes.constData();
+    QByteArray filePathBytes1 = filePath_dial.toUtf8();
+    QByteArray filePathBytes2 = filePath_answer.toUtf8();
 
+    const char* filePathStr1 = filePathBytes1.constData();
+    const char* filePathStr2 = filePathBytes2.constData();
 
+    this->file_dial = sf_open(filePathStr1, SFM_WRITE, &fileInfo);
+    this->file_answer = sf_open(filePathStr2, SFM_WRITE, &fileInfo);
 
-    this->file = sf_open(filePathStr, SFM_WRITE, &fileInfo);
-    if (!file) {
-        qDebug()<<"无法创建录音文件";
+    if (!file_dial) {
+        qDebug()<<"无法创建录音文件_file_dial beginRecording";
+        return false;
+    }
+    if (!file_answer) {
+        qDebug()<<"无法创建录音文件_file_answer beginRecording";
         return false;
     }
 
     return true;
 }
-
 #endif
 
 /*
@@ -762,7 +904,7 @@ void ClientSocketItem::sendData(const QByteArray data,int length){
 
 #if RECODE
     //录音操作（这里录的是接听方的声音）
-    if(this->status == DIALSTATUS && !sf_write(data)){
+    if(this->status == DIALSTATUS && !sf_write(data,file_answer)){
         qDebug()<<"写入失败";
     }
 #endif

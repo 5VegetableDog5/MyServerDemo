@@ -60,7 +60,6 @@ private:
 
     QList<OnlineClientUIItem*> uiOnlineClient;
 
-    void InitMONITOR();
     void InitConnect();
 
     //历史记录窗口相关

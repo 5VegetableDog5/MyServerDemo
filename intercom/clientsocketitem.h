@@ -15,16 +15,15 @@
 #include <QEventLoop>
 #include <QDateTime>
 #include <QTimer>
-
-#if RECODE
-#include "sndfile.h"
-#endif
+#include <QFile>
 
 #include "config.h"
 #include "history.h"
 #include "odbc.h"
 
-
+#if RECODE
+#include "sndfile.h"
+#endif
 
 class ClientSocketItem : public QObject
 {
@@ -86,9 +85,16 @@ private:
     //开始通话时间
     QDateTime beginTime;
 
+
 #if MONITOR
+    //音频播放
+    sf::SoundBuffer soundBuffer;
+    sf::Sound sound;
+
     //监听器 false：关闭； true：打开；
     bool monitor = false;
+
+    void playSound(QByteArray soundData,unsigned int const channels,unsigned int const samplerate);
 #endif
 
     //0:未启用 1:未应答 2:同意接听 3:拒绝接听
@@ -102,7 +108,10 @@ private:
 
 #if RECODE
     SF_INFO fileInfo;
-    SNDFILE* file;//录音文件
+    SNDFILE* file_dial;//录音文件(拨号方）
+    SNDFILE* file_answer;//录音文件（接听方）
+    QString filePath_dial;
+    QString filePath_answer;
 #endif
 
     QTcpSocket* clientSocket;
@@ -126,8 +135,16 @@ private:
     bool adjustFrameHeader();
     bool examineFrameHeader();
 
+#if RECODE
+    //录音相关函数
+    //写入音频数据
+    bool sf_write(const QByteArray buffer, SNDFILE* file);
+    //合并音频
+    void mergeAudio(const QString& input1, const QString& input2, const QString& output);
+    //删除文件夹
+    bool deleteFile(const QString& filePath);
+#endif
 
-    bool sf_write(const QByteArray buffer);
     bool setTatgetClientItem(const QString& IPAddress_port);
     bool setTatgetClientItem(ClientSocketItem* targetItem);
     bool dial(const QString& targetIP);

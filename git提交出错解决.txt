@@ -1,0 +1,5 @@
+前提是有ssh密钥
+
+在项目文件夹打开gitbash命令行
+git config --global --unset https.proxy
+git config --global --unset http.proxy

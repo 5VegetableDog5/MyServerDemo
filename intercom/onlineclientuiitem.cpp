@@ -5,8 +5,7 @@ OnlineClientUIItem::OnlineClientUIItem(QWidget *parent,const QString IPAddr,cons
 {
     this->qhBox = new QHBoxLayout();
 
-    QString IP = IPAddr;
-    this->ipLabel = new QLabel(IP.replace("::ffff:",""));
+    this->ipLabel = new QLabel(IPAddr);
 
     switch(status){
         case AVAILABLE: this->statusLabel = new QLabel("AVAILABLE");break;

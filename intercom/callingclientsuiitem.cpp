@@ -93,7 +93,7 @@ void CallingClientsUIItem::setMonitor(bool STATUS){
         this->getReceiver()->setMonitor(STATUS);
         this->ui->button_Play->setStyleSheet("background-color: red;");
 #if DEBUG
-        printfLog(this->getDialer()->getSocket()->peerName()+ "开启监听\n");
+        printfLog(this->getDialer()->getSocket()->peerAddress().toString().replace("::ffff:","")+ "开启监听\n");
 #endif
     }
 
