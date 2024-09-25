@@ -35,7 +35,7 @@ const short LEGALITYMAXCOUNT = 5;   //最大合法性验证次数
 const int DATALENGTH = 1024;//数据帧长度
 
 //采样率
-const static unsigned int SAMPLERATE = 6000;
+const static unsigned int SAMPLERATE = 6500;
 // 声道数
 const static unsigned short CHANNELS = 2;
 

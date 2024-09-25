@@ -9,30 +9,37 @@ CONFIG += c++17
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    audioplayer.cpp \
     callingclientsuiitem.cpp \
     clientsocketitem.cpp \
     global_volume.cpp \
     history.cpp \
     main.cpp \
     mainwindow.cpp \
+    newconncetionui.cpp \
     odbc.cpp \
     onlineclientuiitem.cpp \
+    recoder.cpp \
     server.cpp
 
 HEADERS += \
+    audioplayer.h \
     callingclientsuiitem.h \
     clientsocketitem.h \
     config.h \
     history.h \
     mainwindow.h \
+    newconncetionui.h \
     odbc.h \
     onlineclientuiitem.h \
+    recoder.h \
     server.h
 
 FORMS += \
     callingclientsuiitem.ui \
     history.ui \
-    mainwindow.ui
+    mainwindow.ui \
+    newconncetionui.ui
 
 QT += network \
     multimedia \

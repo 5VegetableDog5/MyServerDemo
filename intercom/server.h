@@ -11,6 +11,7 @@
 #include "clientsocketitem.h"
 #include "config.h"
 #include "odbc.h"
+#include "audioplayer.h"
 
 class ClientSocketItem;
 
@@ -41,6 +42,7 @@ public: signals:
 
     void newCalling(ClientSocketItem *dialer,ClientSocketItem *receiver);
     void deleteCalling(ClientSocketItem *dialer);
+    void distoryIt();
 protected:
 
 

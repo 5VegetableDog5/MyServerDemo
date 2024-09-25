@@ -5,6 +5,7 @@
 #include<QTime>
 
 #include "clientsocketitem.h"
+#include "audioplayer.h"
 
 namespace Ui {
 class CallingClientsUIItem;

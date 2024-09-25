@@ -40,7 +40,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="page">
      <widget class="QLabel" name="label_clientCount">
@@ -279,18 +279,31 @@
      </rect>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_History">
+   <widget class="QWidget" name="verticalLayoutWidget">
     <property name="geometry">
      <rect>
       <x>690</x>
-      <y>150</y>
-      <width>93</width>
-      <height>28</height>
+      <y>160</y>
+      <width>101</width>
+      <height>221</height>
      </rect>
     </property>
-    <property name="text">
-     <string>历史记录</string>
-    </property>
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <item>
+      <widget class="QPushButton" name="pushButton_History">
+       <property name="text">
+        <string>历史记录</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_newCon">
+       <property name="text">
+        <string>新建连接</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

@@ -15,6 +15,9 @@
 #include "config.h"
 #include "history.h"
 #include "odbc.h"
+#include "newconncetionui.h"
+#include "audioplayer.h"
+#include "recoder.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -32,7 +35,6 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-    void test();
 
     void labelInit();
 
@@ -40,6 +42,7 @@ public:
     void addNewOnlineClient(const QString ipAddr,const short status);
     void upgradeOnlineClient(const QString ipAddr,const short newStatus);
     void offLineClient(const QString ipAddr);
+    QList<OnlineClientUIItem*> getOnlineClients();
 
     //当前通话操作
     void addNewCalling(ClientSocketItem *dialer,ClientSocketItem *receiver);
@@ -49,6 +52,7 @@ public:
     void pageChanged(int page);
     void showOnlineClients();
     void showCallingClients();
+
 
 
 private:
@@ -67,6 +71,12 @@ private:
 
     void showHistoryUI();
     void setHistoryFlagClose();
+
+    //新建连接窗口相关
+    bool newConnectionUIShow = false;
+
+    void showNewConnectionUI();
+    void setNewConnectionFlagClose();
 
 };
 #endif // MAINWINDOW_H

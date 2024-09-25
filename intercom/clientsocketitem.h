@@ -22,6 +22,9 @@
 #include "odbc.h"
 
 #if RECODE
+#include "recoder.h"
+#endif
+#if RECODE
 #include "sndfile.h"
 #endif
 
@@ -29,15 +32,30 @@ class ClientSocketItem : public QObject
 {
     Q_OBJECT
 public:
+
+    //硬件控制帧
+    //帧头:00 ac
+    static QByteArray *ACKFrame;
+    //帧头:11 11
+    static QByteArray *dataFrameHeader;
+    //帧头:00 01
+    static QByteArray *callFrame;
+    //帧头:00 10
+    static QByteArray *hangupFrame;
+    //帧头:00 11
+    static QByteArray *callingBeginFrame;
+
     ClientSocketItem(QTcpSocket *clientSocket);
     ClientSocketItem();
     QTcpSocket* getSocket();
     short getStatus();
     void setStatus(short status);
+    bool dial(const QString& targetIP);
     void disconncetClient();
     void hangUPTheCall();
     void hangUPed();
     void beginWaitANSER();
+
 
     //开始时间相关函数
     void setBeginTime(const QDateTime& time);
@@ -45,12 +63,15 @@ public:
 
 #if MONITOR
     void setMonitor(bool STATUS);
+    bool getMonitor();
 #endif
 
     QString removeLeadingZeros(const QString& ipAddress);
 
     QThread *clientThread;
-    void sendData(const QByteArray data,int length);
+
+    void distory();
+
 
 public: signals:
     void requestToSend(const QByteArray data,int length);
@@ -65,11 +86,22 @@ public: signals:
     void call(ClientSocketItem *dialer,ClientSocketItem *receiver);
     void hangUp(ClientSocketItem *dialer);
 
+#if RECODE
+        void requestSynchronousFilePtr(SNDFILE *file_dial,SNDFILE *file_answer);
+#endif
+
+#if MONITOR
+    void requestPlayAudioDial(const QByteArray audioData);
+    void requestPlayAudioAnswer(const QByteArray audioData);
+    void testSingnal(const QByteArray audioData);
+#endif
+
     //历史记录相关信号
     void requestSaveHistory(QString dialer,QString answer,int callDuration,QDateTime beginTime);
 protected:
 
 private:
+    //void playAudio(const QByteArray& soundData);
     //合法性
     bool legality;
 
@@ -87,14 +119,9 @@ private:
 
 
 #if MONITOR
-    //音频播放
-    sf::SoundBuffer soundBuffer;
-    sf::Sound sound;
 
     //监听器 false：关闭； true：打开；
     bool monitor = false;
-
-    void playSound(QByteArray soundData,unsigned int const channels,unsigned int const samplerate);
 #endif
 
     //0:未启用 1:未应答 2:同意接听 3:拒绝接听
@@ -120,34 +147,20 @@ private:
     //定时器
     QTimer *timer = new QTimer(this);
 
-    //硬件控制帧
-    //帧头:00 ac
-    static QByteArray *ACKFrame;
-    //帧头:11 11
-    static QByteArray *dataFrameHeader;
-    //帧头:00 01
-    static QByteArray *callFrame;
-    //帧头:00 10
-    static QByteArray *hangupFrame;
-    //帧头:00 11
-    static QByteArray *callingBeginFrame;
+
 
     bool adjustFrameHeader();
     bool examineFrameHeader();
 
 #if RECODE
     //录音相关函数
-    //写入音频数据
-    bool sf_write(const QByteArray buffer, SNDFILE* file);
-    //合并音频
-    void mergeAudio(const QString& input1, const QString& input2, const QString& output);
     //删除文件夹
     bool deleteFile(const QString& filePath);
+    void synchronousFilePtr(SNDFILE *file_dial,SNDFILE *file_answer);
 #endif
 
     bool setTatgetClientItem(const QString& IPAddress_port);
     bool setTatgetClientItem(ClientSocketItem* targetItem);
-    bool dial(const QString& targetIP);
 
     void timerTimeOut();
 
@@ -157,7 +170,7 @@ private:
     void initFrame();
     void requestSendDataFrameHeader();
     void cleanNeedlessZero();
-
+    void sendData(const QByteArray data,int length);
 
     void onLine();
     void offLine();

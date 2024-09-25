@@ -7,6 +7,18 @@ QByteArray* ClientSocketItem::callFrame = nullptr;
 QByteArray* ClientSocketItem::hangupFrame = nullptr;
 QByteArray* ClientSocketItem::callingBeginFrame = nullptr;
 
+bool Flah123123 = false;
+
+#if MONITOR
+extern AudioPlayer *DialAP;
+extern AudioPlayer *AnswerAP;
+#endif
+
+#if RECODE
+extern Recoder *DialR;
+extern Recoder *AnswerR;
+#endif
+
 ClientSocketItem::ClientSocketItem(QTcpSocket *clientSocket):clientThread(new QThread)
 {
     this->clientSocket = clientSocket;
@@ -50,30 +62,64 @@ ClientSocketItem::ClientSocketItem(){
 void ClientSocketItem::readTcpData(){
     static int errorNum = 0;
 
-    while(clientSocket->bytesAvailable() >= 2){
-        if(clientSocket){
+    static int needToRead = 0;
+    while(clientSocket!=nullptr && clientSocket->bytesAvailable() >= 1){
+        if(clientSocket!=nullptr){
+            //qDebug()<<"bytesAvailable:"<<clientSocket->bytesAvailable();
+            /*if((status == DIALSTATUS || (status == ANSWERINGSTATUS && AGREEANSWERING == 2)) && Flah123123 == true){//确保是通话状态
+                //发送音频数据至对方
+                if(clientSocket->bytesAvailable() <DATALENGTH+2) break;
+                qDebug()<<"23123123123";
+                data = clientSocket->read(DATALENGTH+2);
+                //requestSendDataFrameHeader();
+                emit requestToSend(data,data.length());
+                continue;
+            }*/
 
+            //读取无用0
+            if(needToRead>0){
+                //qDebug()<<"需要读取："<<needToRead <<"实际可读:"<<clientSocket->bytesAvailable();
+
+                if(clientSocket->bytesAvailable()<needToRead){
+
+                    needToRead-=clientSocket->bytesAvailable();
+                    //qDebug()<<"已读取："<<clientSocket->bytesAvailable()<<" 剩余要读："<<needToRead;
+                    clientSocket->read(clientSocket->bytesAvailable());
+                }else{
+                    clientSocket->read(needToRead);//读取无用0
+                    //qDebug()<<"已读取："<<needToRead<<" 剩余要读："<<0;
+                    needToRead = 0;
+                }
+            }
 
             if(willreceive == HEADER){
                 //读取帧头
                 if(clientSocket->bytesAvailable() >= 2){
+
                     header = clientSocket->read(2);
+                    //qDebug()<<"帧头读完后实际可读:"<<clientSocket->bytesAvailable();
                 }else{
-                    return;
+                    break;
                 }
+                //qDebug().noquote() << QString::number(static_cast<quint8>(header.at(0)), 16).toUpper()<<" "<<QString::number(static_cast<quint8>(header.at(1)), 16).toUpper();
+                //qDebug()<<"header :"<< hex <<" "<<(int)header.at(1);
+                /*if(static_cast<quint8>(header.at(0)) == 0x0F){
+                    qDebug()<<"-----------------------------------------------------";
+                }*/
 
                 if(!examineFrameHeader()){//检验帧头合法性
 
+                    //qDebug()<<"examine Error!";
                     if(!adjustFrameHeader()){//如果调整失败
+                        //qDebug()<<"find header error!";
                         break;
                     }
                 }
 
-
                 //解析帧头
-                if(header.at(0) == 0x00){//控制指令
+                if(static_cast<quint8>(header.at(0)) == 0x0F){//控制指令
                     //qDebug()<<"-------------------------------";
-                    if(header.at(1) == 0x00){//1.注册指令
+                    if(static_cast<quint8>(header.at(1)) == 0x0F){//1.注册指令
                         if(this->legality == false){
                             onLine();
                             qDebug()<<"online";
@@ -90,44 +136,38 @@ void ClientSocketItem::readTcpData(){
                             rebackACKFrame(1);
                             //qDebug()<<"error 已经注册过了"<<this->clientSocket->peerAddress();
                         }
-                    }else if(header.at(1) == 0x01){//2.拨号指令
+                        needToRead = DATALENGTH;
+
+                    }else if(header.at(1) == 0x01 && legality){//2.拨号指令
                         if(this->status == AVAILABLE){
                             willreceive = IPDATA;
                             willReceiveLength = 15;
                             qDebug()<<getSocket()->peerAddress().toString().replace("::ffff:","")<<"拨号";
                         }else{
                             rebackACKFrame(1);
-                            willreceive = IPDATA;
-                            willReceiveLength = 15;
+                            //willreceive = IPDATA;
+                            //willReceiveLength = 15;
                             qDebug()<<getSocket()->peerAddress().toString().replace("::ffff:","")<<"请先结束当前通话！"<<this->clientSocket->peerAddress();
 #if DEBUG
                             printfLog(getSocket()->peerAddress().toString().replace("::ffff:","")+"请先结束当前通话！"+this->clientSocket->peerAddress().toString());
 #endif
                         }
 
-                    }else if(static_cast<unsigned char>(header.at(1)) == static_cast<unsigned char>(0xCF)){//3.挂断指令
+                    }else if((static_cast<unsigned char>(header.at(1)) == static_cast<unsigned char>(0xCF)) && legality){//3.挂断指令
                         if(status == DIALSTATUS || status == ANSWERINGSTATUS){
-                            static int i;
 
-                            //要连续收到三次才挂断,此处读取后面两次是否未挂断指令
-                            static QByteArray qba;
-                            if(clientSocket->bytesAvailable() >= 2*2){
-                                for(i = 0;i < 2;i++){
-                                    qba = clientSocket->read(2);
-                                    if(static_cast<unsigned char>(qba.at(0)) == static_cast<unsigned char>(0x00)
-                                            &&static_cast<unsigned char>(qba.at(1)) == static_cast<unsigned char>(0xCF))
-                                        continue;
-                                    else break;
-                                }
-                                if(i == 2){
+                            //qDebug()<<getSocket()->peerAddress().toString().replace("::ffff:","")<<"hangup!";
+                            //挂断帧头加长！！！！
+                            QByteArray qba;
+
+                            qba = clientSocket->read(2);
+                            if(static_cast<unsigned char>(qba.at(0)) == static_cast<unsigned char>(0x0F)
+                                &&static_cast<unsigned char>(qba.at(1)) == static_cast<unsigned char>(0xCF)){
 #if DEBUG
-                                    printfLog(getSocket()->peerAddress().toString().replace("::ffff:","")+" 挂断与 " +
-                                              targetClientItem->getSocket()->peerAddress().toString().replace("::ffff:","").replace("::ffff","")+"的通话");
+                                printfLog(getSocket()->peerAddress().toString().replace("::ffff:","")+" 挂断与 " +
+                                          targetClientItem->getSocket()->peerAddress().toString().replace("::ffff:","").replace("::ffff","")+"的通话");
 #endif
-                                    hangUPTheCall();
-                                }
-                            }else{
-                                continue;
+                                hangUPTheCall();
                             }
 
 
@@ -138,18 +178,20 @@ void ClientSocketItem::readTcpData(){
 #endif
                             qDebug()<<getSocket()->peerAddress().toString().replace("::ffff:","")<<"hang up error! status error!";
                         }
+                        needToRead = DATALENGTH-2;//读取无用00
 
-                    }else if(header.at(1) == 0x03){//4.下线指令
+                    }else if(header.at(1) == 0x03 && legality){//4.下线指令
                         //offLine();
 #if DEBUG
-                            printfLog(getSocket()->peerAddress().toString().replace("::ffff:","")+"offLine");
+                            //printfLog(getSocket()->peerAddress().toString().replace("::ffff:","")+"offLine");
 #endif
-                        qDebug()<<getSocket()->peerAddress().toString().replace("::ffff:","")<<"offLine";
-                    }else if(header.at(1) == 0x11){//5.同意接听
+                        //qDebug()<<getSocket()->peerAddress().toString().replace("::ffff:","")<<"offLine";
+                    }else if(header.at(1) == 0x11 && legality){//5.同意接听
                         if((this->status == DIALSTATUS ||this->status == ANSWERINGSTATUS)//确保是拨号状态
                                 && AGREEANSWERING == 1){
                             qDebug()<<clientSocket->peerAddress().toString()<<"同意接听";
                             loginedFlag = true;//说明成功注册了
+                            Flah123123 = true;
 #if DEBUG
                             printfLog(clientSocket->peerAddress().toString()+"同意接听");
 #endif
@@ -158,7 +200,8 @@ void ClientSocketItem::readTcpData(){
                             beginTime = QDateTime::currentDateTime();
                             targetClientItem->setBeginTime(beginTime);//同步开始通话时间
 #if RECODE
-                            beginRecording();//开始录音
+                            if(this->status == ANSWERINGSTATUS)
+                                beginRecording();//开始录音
 #endif
                             AGREEANSWERING = 2;
                             emit callingStatusChange(2);//通知UI同意接听
@@ -172,16 +215,19 @@ void ClientSocketItem::readTcpData(){
                             rebackACKFrame(3);
                             emit requestToSendFrame(3);
                         }
+                        needToRead = DATALENGTH;//读取无用00
 
                     }
                     continue;
-                }else if(header.at(0) == 0x01){
-                    if(header.at(1) == 0x00){//音频数据帧
+                }else if(header.at(0) == 0x01 && legality){
+                    if(header.at(1) == 0x0F){//音频数据帧
                         if(status == DIALSTATUS || status == ANSWERINGSTATUS){
                             willreceive = SOUNDDATA;
                             willReceiveLength = DATALENGTH;
                         }else{
-                            qDebug()<<getSocket()->peerAddress().toString().replace("::ffff:","")<<"音频数据帧错误，当前还未进入通话状态!";
+                            //qDebug()<<getSocket()->peerAddress().toString().replace("::ffff:","")<<"音频数据帧错误，当前还未进入通话状态!";
+                            willreceive = SOUNDDATA;
+                            willReceiveLength = DATALENGTH;
                         }
 
                     }else if(header.at(1) == 0x02){//IP数据帧
@@ -189,8 +235,10 @@ void ClientSocketItem::readTcpData(){
                             willreceive = IPDATA;
                             willReceiveLength = 15;
                         }else{
+                            //willreceive = IPDATA;
+                            //willReceiveLength = 15;
 #if DEBUG
-                            printfLog(getSocket()->peerAddress().toString().replace("::ffff:","")+"IPDATA ERROR!!");
+                            printfLog(getSocket()->peerAddress().toString().replace("::ffff:","")+" IPDATA ERROR!!");
 #endif
                             qDebug()<<getSocket()->peerAddress().toString().replace("::ffff:","")<<"IPDATA ERROR!!";
                         }
@@ -212,14 +260,15 @@ void ClientSocketItem::readTcpData(){
                 }
             }
 
-            if(willreceive == IPDATA){//1.IP数据帧
+            if(willreceive == IPDATA && legality){//1.IP数据帧
                 handleIPDATA();
+                needToRead = DATALENGTH-15;//读取无用00
                 continue;
-            }else if(willreceive == SOUNDDATA){//2.音频数据帧
+            }else if(willreceive == SOUNDDATA && legality){//2.音频数据帧
                 if(clientSocket->bytesAvailable() >=willReceiveLength){
-                    //qDebug() <<clientSocket->peerAddress()<< "bytesAvaiable"<<this->clientSocket->bytesAvailable()<<"willreceive"<<willReceiveLength;
+                    //qDebug() <<"1";
                     data = clientSocket->read(willReceiveLength);
-                    if(targetClientItem){
+                    if(targetClientItem!=nullptr && this->status != AVAILABLE){
                         //qDebug() << "音频数据";
                         if(status == DIALSTATUS || (status == ANSWERINGSTATUS && AGREEANSWERING == 2)){//确保是通话状态
                             //发送音频数据至对方
@@ -227,25 +276,39 @@ void ClientSocketItem::readTcpData(){
                             emit requestToSend(data,data.length());
 #if MONITOR
                             //如果该通话被监听
+                            /*if(monitor){
+                                //qDebug()<<"emit requestPlayAudio";
+                                //emit requestPlayAudio(data);
+                                playAudio(data);
+                            }*/
                             if(monitor){
-                                playSound(data,CHANNELS,SAMPLERATE);
+                                if(this->status == DIALSTATUS){
+                                    //qDebug()<<"playAudio Singal DIALS";
+                                    emit requestPlayAudioDial(data);
+                                }else if(this->status == ANSWERINGSTATUS){
+                                    //qDebug()<<"playAudio Singal ANSWERINGSTATUS";
+                                    emit requestPlayAudioAnswer(data);
+                                    //emit testSingnal(data);
+                                }
                             }
 #endif
 
 #if RECODE
                             //录音操作（这里录的是拨号方的声音）
-                            if(this->status == DIALSTATUS && !sf_write(data,file_dial)){
-                                qDebug()<<"写入失败";
+                            if(this->status == ANSWERINGSTATUS){
+                                if(file_answer != nullptr)
+                                    AnswerR->sf_write(data,file_answer);
+                            }else if(this->status == DIALSTATUS){
+                                if(file_answer != nullptr)
+                                    DialR->sf_write(data,file_dial);
                             }
 #endif
                         }
                     }else{
-#if DEBUG
-                            printfLog("program error!");
-#endif
-                        qDebug()<<"program error!";
-                        qDebug()<<"the item "<<getSocket()->peerAddress().toString().replace("::ffff:","")<<getSocket()->peerPort()<<"is DIALSTATUS,but targetClientItem is NULL";
+                        clientSocket->read(clientSocket->bytesAvailable());
+                        //qDebug()<<"111 the item "<<getSocket()->peerAddress().toString().replace("::ffff:","")<<getSocket()->peerPort()<<"is DIALSTATUS,but targetClientItem is NULL";
                     }
+
                     willreceive = HEADER;
                     willReceiveLength = 0;
 
@@ -257,7 +320,7 @@ void ClientSocketItem::readTcpData(){
                 if(clientSocket->bytesAvailable() >= 16){
                     qDebug() <<clientSocket->peerAddress()<< "bytesAvaiable"<<this->clientSocket->bytesAvailable()<<"willreceive"<<willReceiveLength;
                     data = clientSocket->read(willReceiveLength);
-                    if(targetClientItem){
+                    if(targetClientItem != nullptr){
                         qDebug() << "测试数据" ;
                         if(status == DIALSTATUS || status == ANSWERINGSTATUS){//确保是通话状态
                             //targetClientItem->getSocket()->write(header,2);
@@ -271,8 +334,8 @@ void ClientSocketItem::readTcpData(){
 #endif*/
                         }
                     }else{
-                        qDebug()<<"program error! <<";
-                        qDebug()<<"the item "<<getSocket()->peerAddress().toString().replace("::ffff:","")<<getSocket()->peerPort()<<"is DIALSTATUS,but targetClientItem is NULL";
+                        clientSocket->read(clientSocket->bytesAvailable());
+                        //qDebug()<<"222 the item "<<getSocket()->peerAddress().toString().replace("::ffff:","")<<getSocket()->peerPort()<<"is DIALSTATUS,but targetClientItem is NULL";
                     }
                     willreceive = HEADER;
                     willReceiveLength = 0;
@@ -289,27 +352,26 @@ void ClientSocketItem::readTcpData(){
 
 }
 
-/*
- * @playSound说明：播放soundDate二进制音频数据
- * 参数：@soundData：二进制音频数据
- *      @channels：声道数
- *      @samlerate：波特率
- * 返回值：无
- *
-*/
-void ClientSocketItem::playSound(QByteArray soundData,unsigned int const channels,unsigned int const samplerate){
-
+/*void ClientSocketItem::playAudio(const QByteArray& soundData){
+    qDebug()<<"playAudio";
     if(soundData.size() == 0){
         qDebug()<<"音频播放失败！soundData 为 0 ！";
         return;
     }
+
+    sf::SoundBuffer soundBuffer;
+    sf::Sound sound;
+
+    int channels = CHANNELS;
+    int samplerate = SAMPLERATE;
     // 从QByteArray中获取音频数据
     const qint16* data = reinterpret_cast<const qint16*>(soundData.constData());
-    std::size_t dataSize = soundData.size() / sizeof(qint16);
+    std::size_t dataSize = (soundData.size() / sizeof(qint16));
 
 
+    //qDebug()<< dataSize;
     // 从文件中加载音频数据
-    if (!soundBuffer.loadFromSamples(data, dataSize ,channels,samplerate)) {
+    if (soundBuffer.loadFromSamples(data, dataSize ,channels,samplerate)) {
         // 将音频数据设置到音频对象中
         sound.setBuffer(soundBuffer);
 
@@ -317,11 +379,12 @@ void ClientSocketItem::playSound(QByteArray soundData,unsigned int const channel
         sound.play();
 
         // 等待音频播放完毕
-        //while (sound.getStatus() == sf::Sound::Playing) {}
+        while (sound.getStatus() == sf::Sound::Playing) {}
     }else{
-        qDebug()<<"ClientSocketItem::playSound :加载音频数据失败！";
+        qDebug()<<"AudioPlayer-playAudio :加载音频数据失败！ ";
     }
-}
+}*/
+
 
 bool ClientSocketItem::adjustFrameHeader(){
     if(clientSocket){
@@ -350,19 +413,19 @@ bool ClientSocketItem::adjustFrameHeader(){
 }
 
 bool ClientSocketItem::examineFrameHeader(){
-    if(header.at(0) == 0x00)
+    if(static_cast<quint8>(header.at(0)) == 0x0F)
     {
         switch(static_cast<unsigned char>(header.at(1))){
-            case 0x00:return true;break;
+            case 0x0F:return true;break;
             case 0x01:return true;break;
             case 0xCF:return true;break;
             case 0x03:return true;break;
             case 0x11:return true;break;
             default:return false;
         }
-    }else if(header.at(0) == 0x01){
+    }else if(static_cast<quint8>(header.at(0)) == 0x01){
         switch(static_cast<unsigned char>(header.at(1))){
-            case 0x00:return true;break;
+            case 0x0F:return true;break;
             case 0x02:return true;break;
             case 0x01:return true;break;
             default:return false;
@@ -373,93 +436,8 @@ bool ClientSocketItem::examineFrameHeader(){
 }
 
 #if RECODE
-//将buffer内的数据写入到wav文件中
-bool ClientSocketItem::sf_write(const QByteArray buffer, SNDFILE* file){
-    if(file){
-        // 写入音频数据
-        sf_count_t numFramesWritten = sf_write_raw(file, buffer.constData(), buffer.size());
-        if (numFramesWritten < 0) {
-            qDebug()<<"写入音频数据失败";
-            sf_close(file);
-            return false;
-        }
-    }else{
-        return false;
-    }
-    return true;
-}
 
-/*
- * @mergeAudio
- * 说明:合并两段wav音频，需要保证两段音频的格式是相同的如波特率等
- * 参数：@input1:第一个wav文件的文件路径
- *      @input2:第二个wav文件的文件路径
- *      @output:输出文件的文件路径
- * 返回值:无
-*/
-void ClientSocketItem::mergeAudio(const QString& input1, const QString& input2, const QString& output){
-    SNDFILE* infile1 = nullptr;
-    SNDFILE* infile2 = nullptr;
-    SF_INFO info1;
-    SF_INFO info2;
 
-    // 打开第一段音频文件
-    infile1 = sf_open(input1.toStdString().c_str(), SFM_READ, &info1);
-    if (!infile1) {
-        qDebug() << "Error opening file" << input1;
-        return;
-    }
-
-    // 打开第二段音频文件
-    infile2 = sf_open(input2.toStdString().c_str(), SFM_READ, &info2);
-    if (!infile2) {
-        qDebug() << "Error opening file" << input2;
-        sf_close(infile1);
-        return;
-    }
-
-    // 检查音频格式是否相同
-    if (info1.channels != info2.channels || info1.samplerate != info2.samplerate) {
-        qDebug() << "Error: Audio formats do not match";
-        sf_close(infile1);
-        sf_close(infile2);
-        return;
-    }
-
-    // 创建输出音频文件
-    SF_INFO outinfo = info1;
-    SNDFILE* outfile = sf_open(output.toStdString().c_str(), SFM_WRITE, &outinfo);
-    if (!outfile) {
-        qDebug() << "Error creating output file" << output;
-        sf_close(infile1);
-        sf_close(infile2);
-        return;
-    }
-
-    // 读取并合并音频数据
-    const int BUFFER_SIZE = 1024;
-    QVector<short> buffer1(BUFFER_SIZE * info1.channels);
-    QVector<short> buffer2(BUFFER_SIZE * info2.channels);
-    int framesRead1 = 0;
-    int framesRead2 = 0;
-
-    while ((framesRead1 = sf_read_short(infile1, buffer1.data(), BUFFER_SIZE)) > 0 &&
-           (framesRead2 = sf_read_short(infile2, buffer2.data(), BUFFER_SIZE)) > 0) {
-        // 确保读取的帧数相同
-        int framesToWrite = qMin(framesRead1, framesRead2);
-
-        // 合并音频数据并写入输出文件
-        sf_write_short(outfile, buffer1.data(), framesToWrite * info1.channels);
-        sf_write_short(outfile, buffer2.data(), framesToWrite * info2.channels);
-    }
-
-    // 关闭文件
-    sf_close(infile1);
-    sf_close(infile2);
-    sf_close(outfile);
-
-    qDebug() << "Audio files merged successfully";
-}
 
 bool ClientSocketItem::deleteFile(const QString& filePath){
     QFile file(filePath);
@@ -475,6 +453,11 @@ bool ClientSocketItem::deleteFile(const QString& filePath){
 
     qDebug() << "File" << filePath << "deleted successfully.";
     return true;
+}
+
+void ClientSocketItem::synchronousFilePtr(SNDFILE *file_dial,SNDFILE* file_answer){
+    this->file_answer = file_answer;
+    this->file_dial = file_dial;
 }
 #endif
 
@@ -500,28 +483,6 @@ bool ClientSocketItem::setTatgetClientItem(ClientSocketItem* targetItem){
     返回值：无
 */
 void ClientSocketItem::setStatus(short status){
-#if RECODE
-    //如果从接听状态改变到空闲状态了，说明通话结束了
-    if(this->status == ANSWERINGSTATUS && status == AVAILABLE){
-
-        // 关闭文件
-        if(file_dial && file_answer){
-            sf_close(file_dial);
-            sf_close(file_answer);
-            QString outputFilePath = "data/"+getSocket()->peerAddress().toString().replace("::ffff:", "")+
-                "_to_"+targetClientItem->getSocket()->peerAddress().toString().replace("::ffff:", "")+
-                 beginTime.toString("yyyy-MM-dd_hh-mm-ss")+".wav";
-            mergeAudio(filePath_answer, filePath_dial,outputFilePath);
-            //删除临时文件
-            deleteFile(filePath_answer);
-            deleteFile(filePath_dial);
-            file_dial = nullptr;
-            file_answer = nullptr;
-        }else{
-            qDebug()<<"dile_dial or file_answer is null"<<file_answer<<" "<<file_dial;
-        }
-    }
-#endif
     this->status = status;
     emit statusChanged(this->clientSocket->peerAddress().toString().replace("::ffff:", ""),status);
 }
@@ -532,8 +493,9 @@ short ClientSocketItem::getStatus(){
 
 bool ClientSocketItem::dial(const QString& targetIP){
     if(setTatgetClientItem(targetIP)){
-        qDebug() << "target set to" << targetClientItem->getSocket()->peerAddress() << targetClientItem->getSocket()->peerPort();
-
+#if DEBUG
+        //printfLog(this->clientSocket->peerAddress().toString()+" 对 "+(*strdata) + "进行拨号");
+#endif
         //如果成功找到对应IP则将本身状态转化为拨号状态 且要将对方设为接听状态
         //拨号状态的 targetClientItem 为拨号的对象
         //接听状态的 targetClientItem 为拨号的发起者
@@ -550,6 +512,10 @@ bool ClientSocketItem::dial(const QString& targetIP){
         connect(targetClientItem,&ClientSocketItem::requestToHangup,this,&ClientSocketItem::hangUPed);
         connect(this,&ClientSocketItem::requestToANSWER,targetClientItem,&ClientSocketItem::beginWaitANSER);
 
+#if RECODE
+        connect(targetClientItem,&ClientSocketItem::requestSynchronousFilePtr,this,&ClientSocketItem::synchronousFilePtr);
+        connect(this,&ClientSocketItem::requestSynchronousFilePtr,targetClientItem,&ClientSocketItem::synchronousFilePtr);
+#endif
         //通知Server转发至UI
         emit call(this,targetClientItem);
 
@@ -606,27 +572,27 @@ void ClientSocketItem::initFrame(){
 
     //帧头
     dataFrameHeader->append(0x11);dataFrameHeader->append(0x11);
-    callFrame->append(static_cast<int>(0x00));callFrame->append(static_cast<int>(0x01));
-    hangupFrame->append(static_cast<int>(0x00));hangupFrame->append(static_cast<int>(0x10));
+    callFrame->append(static_cast<int>(0x0F));callFrame->append(static_cast<int>(0x01));
+    hangupFrame->append(static_cast<int>(0x0F));hangupFrame->append(static_cast<int>(0x10));
 
     //该帧用于通知拨号方已经拨通，可以开始通话了
-    callingBeginFrame->append(static_cast<int>(0x00));callingBeginFrame->append(static_cast<int>(0x11));
+    callingBeginFrame->append(static_cast<int>(0x0F));callingBeginFrame->append(static_cast<int>(0x11));
 
     //普通应答信号
-    ACKFrame->append(static_cast<int>(0x00));ACKFrame->append(static_cast<unsigned int>(0xac));
+    ACKFrame->append(static_cast<int>(0x0F));ACKFrame->append(static_cast<unsigned int>(0xac));
 
     //数据部分
     for(int i=0;i<DATALENGTH;i++){
-        ACKFrame->append(static_cast<int>(0x00));
-        hangupFrame->append(static_cast<int>(0x00));
-        callFrame->append(static_cast<int>(0x00));
-        callingBeginFrame->append(static_cast<int>(0x00));
+        ACKFrame->append(static_cast<int>(0x0F));
+        hangupFrame->append(static_cast<int>(0x0F));
+        callFrame->append(static_cast<int>(0x0F));
+        callingBeginFrame->append(static_cast<int>(0x0F));
     }
 
 }
 
 void ClientSocketItem::requestSendDataFrameHeader(){
-    emit requestToSend(*dataFrameHeader,dataFrameHeader->count());
+    emit requestToSend(*dataFrameHeader,dataFrameHeader->size());
 }
 
 //删除不必要的0
@@ -668,7 +634,6 @@ void ClientSocketItem::hangUPTheCall(){
         dialerIP = targetClientItem->getSocket()->peerAddress().toString().replace("::ffff:","");
         answerIP = getSocket()->peerAddress().toString().replace("::ffff:","");
     }
-
     emit requestSaveHistory(dialerIP,answerIP,(int)beginTime.secsTo(QDateTime::currentDateTime()),beginTime);
 
     //返回应答信号
@@ -676,7 +641,7 @@ void ClientSocketItem::hangUPTheCall(){
         rebackACKFrame(4);
 
     //告知对方设备
-    emit requestToSend(*hangupFrame,hangupFrame->count());
+    emit requestToSend(*hangupFrame,hangupFrame->size());
 
     //通知Server 转发至UI
     emit hangUp(this);
@@ -685,6 +650,10 @@ void ClientSocketItem::hangUPTheCall(){
     emit requestToHangup();
         //qDebug()<<"1234";
     setStatus(AVAILABLE);
+
+    setMonitor(false);
+
+    while(targetClientItem->getStatus() != AVAILABLE);
 
     //断开信号函数和槽函数用于两个CLient之间的通讯
     disconnect(this,&ClientSocketItem::requestToSend,targetClientItem,&ClientSocketItem::sendData);
@@ -696,12 +665,54 @@ void ClientSocketItem::hangUPTheCall(){
     disconnect(this,&ClientSocketItem::requestToANSWER,targetClientItem,&ClientSocketItem::beginWaitANSER);
     disconnect(targetClientItem,&ClientSocketItem::requestToANSWER,this,&ClientSocketItem::beginWaitANSER);
 
+    disconnect(this,&ClientSocketItem::requestPlayAudioAnswer,AnswerAP,&AudioPlayer::playAudio);
+    disconnect(this,&ClientSocketItem::requestPlayAudioDial,DialAP,&AudioPlayer::playAudio);
+
     setTatgetClientItem(nullptr);
-    //qDebug()<<"12345";
+
+#if RECODE
+    this->file_answer = nullptr;
+    this->filePath_dial = nullptr;
+#endif
+
+    //qDebug()<<"12345 "<<getSocket()->peerAddress().toString().replace("::ffff:","");
 }
 
 void ClientSocketItem::hangUPed(){//被动挂电话
+
+#if RECODE
+    // 关闭文件
+    qDebug()<<"singal file is join!";
+    if(file_dial != nullptr && file_answer != nullptr){
+        sf_close(file_dial);
+        sf_close(file_answer);
+        QString outputFilePath;
+        if(targetClientItem!=nullptr){
+            outputFilePath = "data/"+getSocket()->peerAddress().toString().replace("::ffff:", "")+
+                             "_to_"+targetClientItem->getSocket()->peerAddress().toString().replace("::ffff:", "")+
+                             beginTime.toString("yyyy-MM-dd_hh-mm-ss")+".wav";
+        }else{
+            outputFilePath = "data/"+getSocket()->peerAddress().toString().replace("::ffff:", "")+
+                                     //"_to_"+targetClientItem->getSocket()->peerAddress().toString().replace("::ffff:", "")+
+                                     beginTime.toString("yyyy-MM-dd_hh-mm-ss")+".wav";
+        }
+
+        AnswerR->mergeAudio(filePath_answer, filePath_dial,outputFilePath);
+        //删除临时文件
+        qDebug()<<"singal Audiofile is success!";
+        deleteFile(filePath_answer);
+        deleteFile(filePath_dial);
+    }else{
+        qDebug()<<"dile_dial or file_answer is null"<<file_answer<<" "<<file_dial;
+    }
+    this->file_answer = nullptr;
+    this->file_dial = nullptr;
+    //qDebug()<<"singal file is success!";
+
+#endif
+
     AGREEANSWERING = 0;
+    setMonitor(false);
     setStatus(AVAILABLE);
     //qDebug()<<"hangup123";
     setTatgetClientItem(nullptr);
@@ -715,6 +726,7 @@ void ClientSocketItem::beginWaitANSER(){
         emit callingStatusChange(1);
         AGREEANSWERING = 1;//接听未应答状态
         // 启动定时器
+        qDebug()<<"Timer start!";
         timer->start();
     }
 
@@ -728,7 +740,7 @@ QDateTime ClientSocketItem::getBeginTime(){
     return beginTime;
 }
 
-
+#if MONITOR
 /*
 @参数：STATUS 取值：true false；
       当STATUS取值为true时：监听当前socket
@@ -742,8 +754,12 @@ void ClientSocketItem::setMonitor(bool STATUS){
     }
 }
 
+bool ClientSocketItem::getMonitor(){
+    return this->monitor;
+}
+#endif
+
 void ClientSocketItem::onLine(){
-    clientSocket->read(1);
     legality = true;
     rebackACKFrame(1);
     //检测是否有相同IP
@@ -782,23 +798,31 @@ bool ClientSocketItem::beginRecording(){
         return false;
     }
 
+    //qDebug()<<"file Ptr init success!\n\n\n\n";
+
     QByteArray filePathBytes1 = filePath_dial.toUtf8();
     QByteArray filePathBytes2 = filePath_answer.toUtf8();
 
     const char* filePathStr1 = filePathBytes1.constData();
     const char* filePathStr2 = filePathBytes2.constData();
 
-    this->file_dial = sf_open(filePathStr1, SFM_WRITE, &fileInfo);
-    this->file_answer = sf_open(filePathStr2, SFM_WRITE, &fileInfo);
+    if(this->status == ANSWERINGSTATUS){
+        //qDebug()<<"file Ptr init success!";
+        this->file_dial = sf_open(filePathStr1, SFM_WRITE, &fileInfo);
+        this->file_answer = sf_open(filePathStr2, SFM_WRITE, &fileInfo);
 
-    if (!file_dial) {
-        qDebug()<<"无法创建录音文件_file_dial beginRecording";
-        return false;
+        if (file_dial == nullptr) {
+            qDebug()<<"无法创建录音文件_file_dial beginRecording";
+            return false;
+        }
+        if (file_answer== nullptr) {
+            qDebug()<<"无法创建录音文件_file_answer beginRecording";
+            return false;
+        }
+        emit requestSynchronousFilePtr(file_dial,file_answer);
+        qDebug()<<"录音文件录音文件创建成功! beginRecording";
     }
-    if (!file_answer) {
-        qDebug()<<"无法创建录音文件_file_answer beginRecording";
-        return false;
-    }
+
 
     return true;
 }
@@ -815,9 +839,6 @@ bool ClientSocketItem::handleIPDATA(){
         data = clientSocket->read(15);
         if(this->legality){//确保已经注册且在线
             strdata = new QString(data);
-#if DEBUG
-            printfLog(this->clientSocket->peerAddress().toString()+" 对 "+(*strdata) + "进行拨号");
-#endif
             dial(removeLeadingZeros(*strdata));//尝试拨号
         }
 
@@ -849,7 +870,7 @@ void ClientSocketItem::handleCloseConnection(){
 #endif
             qDebug()<<clientSocket->peerAddress()<<clientSocket->peerPort()<<"close ...";
             //通知UI界面下线
-            emit offLineSingal(clientSocket->peerAddress().toString());
+            emit offLineSingal(clientSocket->peerAddress().toString().replace("::ffff:",""));
             if(this->status != AVAILABLE)
                 emit hangUp(this);
         }else{
@@ -892,6 +913,12 @@ QString ClientSocketItem::removeLeadingZeros(const QString& ipAddress) {
     return ipParts.join('.'); // 返回去除前导零后的修正后的IP地址字符串
 }
 
+void ClientSocketItem::distory(){
+
+    handleCloseConnection();
+    delete this;
+}
+
 void ClientSocketItem::sendData(const QByteArray data,int length){
     if(clientSocket){
 
@@ -900,13 +927,6 @@ void ClientSocketItem::sendData(const QByteArray data,int length){
 
 #if MONITOR
 
-#endif
-
-#if RECODE
-    //录音操作（这里录的是接听方的声音）
-    if(this->status == DIALSTATUS && !sf_write(data,file_answer)){
-        qDebug()<<"写入失败";
-    }
 #endif
 }
 
@@ -924,10 +944,10 @@ void ClientSocketItem::sendData(const QByteArray data,int length){
 */
 void ClientSocketItem::rebackACKFrame(int num){
     switch(num){
-        case 1:clientSocket->write(*ACKFrame,ACKFrame->count());break;
-        case 2:clientSocket->write(*callFrame,callFrame->count());break;
-        case 3:clientSocket->write(*callingBeginFrame,callingBeginFrame->count());break;
-        case 4:clientSocket->write(*hangupFrame,hangupFrame->count());break;
+        case 1:clientSocket->write(*ACKFrame,ACKFrame->size());break;
+        case 2:clientSocket->write(*callFrame,callFrame->size());break;
+        case 3:clientSocket->write(*callingBeginFrame,callingBeginFrame->size());break;
+        case 4:clientSocket->write(*hangupFrame,hangupFrame->size());break;
     }
 }
 

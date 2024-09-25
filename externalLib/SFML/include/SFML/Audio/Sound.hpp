@@ -32,6 +32,7 @@
 #include <SFML/Audio/SoundSource.hpp>
 
 #include <cstdlib>
+#include <QObject>
 
 
 namespace sf

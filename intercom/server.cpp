@@ -1,8 +1,14 @@
 #include "server.h"
 
+
 QList<ClientSocketItem*> Server::onlineClients;
 
 extern QSqlDatabase db;
+
+#if MONITOR
+extern AudioPlayer *DialAP;
+extern AudioPlayer *AnswerAP;
+#endif
 
 Server::Server()
 {
@@ -57,12 +63,13 @@ void Server::deleteOnlieClient(ClientSocketItem* ClientSocketItem){
 ClientSocketItem* Server::getTargetClientFromOnline(QString targetIP){
 
     QHostAddress *targetIPAddress = new QHostAddress(targetIP);
-    qDebug() << targetIPAddress->toIPv4Address() <<" "<<" Server!";
+    //qDebug() << targetIPAddress->toIPv4Address() <<" "<<" Server!";
 
     for(int i = 0;i<onlineClients.size();i++){
         //qDebug()<<onlineClients[i]->getSocket()->peerAddress() <<" "<<onlineClients[i]->getSocket()->peerPort();
         if(onlineClients[i]->getSocket()->peerAddress().toIPv4Address() == targetIPAddress->toIPv4Address()
                 && onlineClients[i]->getStatus() == AVAILABLE){
+            //qDebug()<<"7";
             return onlineClients[i];
         }
     }
@@ -107,7 +114,22 @@ void Server::handleNewConnection()
     clientSocket = server->nextPendingConnection();
     qDebug() << "new client connected:" << clientSocket->peerAddress().toString()<<clientSocket->peerPort();
 
+
+    //查找是否有相同IP已经连接
+    for(int i = 0;i<onlineClients.size();i++){
+        if(onlineClients[i]->getSocket()->peerAddress().toIPv4Address() == clientSocket->peerAddress().toIPv4Address()){
+            qDebug()<<"删除相同的IP";
+            connect(this,&Server::distoryIt,onlineClients[i],&ClientSocketItem::distory);
+            emit distoryIt();
+            disconnect(this,&Server::distoryIt,onlineClients[i],&ClientSocketItem::distory);
+
+            onlineClients.removeOne(onlineClients[i]);
+
+            break;
+        }
+    }
     ClientSocketItem *cst = new ClientSocketItem(clientSocket);
+
     connect(cst,&ClientSocketItem::onlineClientSingal,this,&Server::emitNewClientSingals);
     connect(cst,&ClientSocketItem::statusChanged,this,&Server::emitUpgradeClientStatus);
     connect(cst,&ClientSocketItem::offLineSingal,this,&Server::emitOffLineSingal);
@@ -116,14 +138,20 @@ void Server::handleNewConnection()
 
     connect(cst,&ClientSocketItem::requestSaveHistory,odbc,&ODBC::saveNewHistory);
 
+    connect(cst,&ClientSocketItem::requestPlayAudioAnswer,AnswerAP,&AudioPlayer::playAudio);
+    connect(cst,&ClientSocketItem::requestPlayAudioDial,DialAP,&AudioPlayer::playAudio);
+    //connect(cst,&ClientSocketItem::testSingnal,DialAP,&AudioPlayer::playAudio);
+
+
 }
 
 void Server::searchSameIP(ClientSocketItem *client){
     for(int i = 0;i<onlineClients.size();i++){
         if(onlineClients[i]->getSocket()->peerAddress().toIPv4Address() == client->getSocket()->peerAddress().toIPv4Address()){
             qDebug()<<"删除相同的IP";
-            onlineClients[i]->disconncetClient();
+            //connect(this,&Server::distoryIt,onlineClients[i],&ClientSocketItem::distory);
             onlineClients.removeOne(onlineClients[i]);
+
             break;
         }
     }

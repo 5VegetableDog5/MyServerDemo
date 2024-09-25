@@ -8,7 +8,13 @@ QTextBrowser *logBrowser;
 #endif
 
 #if MONITOR
+AudioPlayer *DialAP;
+AudioPlayer *AnswerAP;
+#endif
 
+#if RECODE
+Recoder *DialR;
+Recoder *AnswerR;
 #endif
 
 extern QList<CallingClientsUIItem*> uiCallingItems;
@@ -26,6 +32,16 @@ MainWindow::MainWindow(QWidget *parent)
     this->server = new Server();
 #if DEBUG
     logBrowser = ui->logBrowser;
+#endif
+
+#if MONITOR
+    DialAP = new AudioPlayer(CHANNELS,SAMPLERATE);
+    AnswerAP = new AudioPlayer(CHANNELS,SAMPLERATE);
+#endif
+
+#if RECODE
+    DialR = new Recoder();
+    AnswerR = new Recoder();
 #endif
 
     QWidget  *onlineScrollAreaContent = new QWidget ();
@@ -61,6 +77,7 @@ void MainWindow::InitConnect(){
     connect(ui->pushButton_Calling,&QPushButton::clicked,this,&MainWindow::showCallingClients);
 
     connect(ui->pushButton_History,&QPushButton::clicked,this,&MainWindow::showHistoryUI);
+    connect(ui->pushButton_newCon,&QPushButton::clicked,this,&MainWindow::showNewConnectionUI);
 }
 
 /*
@@ -217,10 +234,35 @@ void MainWindow::showHistoryUI(){
 
         connect(history, &History::aboutToClose, this,&MainWindow::setHistoryFlagClose);
     }else{
-        history->raise();
+        if(history!=nullptr) history->raise();
+        else{
+#if DEBUG
+            qDebug()<<"history is null at mainwindow.cpp line 223!";
+#endif
+        }
     }
 
-    //qDebug()<<"789789";
+
+}
+
+void MainWindow::showNewConnectionUI(){
+
+    static NewConncetionUI *ncUI = new NewConncetionUI(nullptr,server);
+    if(!newConnectionUIShow){
+
+        ncUI->show();
+
+        newConnectionUIShow = true;
+
+        connect(ncUI, &NewConncetionUI::aboutToClose, this,&MainWindow::setNewConnectionFlagClose);
+    }else{
+        if(ncUI!=nullptr) ncUI->raise();
+    }
+
+}
+
+void MainWindow::setNewConnectionFlagClose(){
+    newConnectionUIShow = false;
 }
 
 void MainWindow::setHistoryFlagClose(){

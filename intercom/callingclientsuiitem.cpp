@@ -12,7 +12,7 @@ CallingClientsUIItem::CallingClientsUIItem(QWidget *parent,ClientSocketItem *dia
     //UI初始化
 #if MONITOR
     this->ui->button_Play->setText("监听");
-    this->ui->button_Play->setStyleSheet("background-color: green;");
+    this->ui->button_Play->setStyleSheet("background-color: red;");
 #endif
 
     callingTimeInit();//拨号时长Timer初始化
@@ -81,6 +81,7 @@ void CallingClientsUIItem::callingStatusChange(int status){
     }
 }
 
+#if MONITOR
 /*
 *@说明：根据 @STATUS 来设置当前通话是否被监听
 */
@@ -91,14 +92,25 @@ void CallingClientsUIItem::setMonitor(bool STATUS){
     if(STATUS){
         this->getDialer()->setMonitor(STATUS);
         this->getReceiver()->setMonitor(STATUS);
-        this->ui->button_Play->setStyleSheet("background-color: red;");
+        this->ui->button_Play->setStyleSheet("background-color: green;");
+        /*if(STATUS){
+            qDebug()<<"connect AudioPlayer this"<<getDialer()->getSocket()->peerAddress().toString().replace("::ffff:","")<<
+                " "<<getReceiver()->getSocket()->peerAddress().toString().replace("::ffff:","");
+            connect(this->getDialer(),&ClientSocketItem::requestPlayAudio,DialAP,&AudioPlayer::playAudio);
+            connect(this->getReceiver(),&ClientSocketItem::requestPlayAudio,AnswerAP,&AudioPlayer::playAudio);
+        }*/
 #if DEBUG
         printfLog(this->getDialer()->getSocket()->peerAddress().toString().replace("::ffff:","")+ "开启监听\n");
 #endif
+    }else{
+        closeMonitor();
+        this->ui->button_Play->setStyleSheet("background-color: red;");
     }
 
 }
+#endif
 
+#if MONITOR
 /*
 *@说明：反转当前监听状态
 */
@@ -110,10 +122,21 @@ void CallingClientsUIItem::invertMonitor(){
 *@说明：关闭该通话的监听功能
 */
 void CallingClientsUIItem::closeMonitor(){
-    this->getDialer()->setMonitor(false);
-    this->getReceiver()->setMonitor(false);
-    this->ui->button_Play->setStyleSheet("background-color: green;");
+    if(this->getDialer()->getMonitor()){
+        //qDebug()<<"disconnect AudioPlayer this";
+        //disconnect(this->getDialer(),&ClientSocketItem::requestPlayAudio,DialAP,&AudioPlayer::playAudio);
+        this->getDialer()->setMonitor(false);
+    }
+
+    if(this->getReceiver()->getMonitor()){
+        //qDebug()<<"disconnect AudioPlayer this";
+        //disconnect(this->getReceiver(),&ClientSocketItem::requestPlayAudio,AnswerAP,&AudioPlayer::playAudio);
+        this->getReceiver()->setMonitor(false);
+    }
+
+    this->ui->button_Play->setStyleSheet("background-color: red;");
 }
+#endif
 
 CallingClientsUIItem::~CallingClientsUIItem()
 {
